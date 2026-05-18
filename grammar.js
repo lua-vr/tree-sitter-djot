@@ -13,8 +13,6 @@ module.exports = grammar({
     [$.highlighted_begin, $._symbol_fallback],
     [$.insert_begin, $._symbol_fallback],
     [$.delete_begin, $._symbol_fallback],
-    [$._bracketed_text_begin, $._symbol_fallback],
-    [$._image_description_begin, $._symbol_fallback],
     [$.footnote_marker_begin, $._symbol_fallback],
     [$.block_math, $._symbol_fallback],
     [$.inline_math, $._symbol_fallback],
@@ -83,73 +81,50 @@ module.exports = grammar({
         optional($._eof_or_newline),
       ),
     _heading_content: ($) =>
-      seq(
-        $._inline_line,
-        repeat(seq(alias($._heading_continuation, $.marker), $._inline_line)),
-      ),
-
-    // Djot has a crazy number of different list types
-    // that we need to keep separate from each other.
-    list: ($) =>
-      prec.left(
-        choice(
-          $._list_dash,
-          $._list_plus,
-          $._list_star,
-          $._list_task,
-          $._list_definition,
-          $._list_decimal_period,
-          $._list_decimal_paren,
-          $._list_decimal_parens,
-          $._list_lower_alpha_period,
-          $._list_lower_alpha_paren,
-          $._list_lower_alpha_parens,
-          $._list_upper_alpha_period,
-          $._list_upper_alpha_paren,
-          $._list_upper_alpha_parens,
-          $._list_lower_roman_period,
-          $._list_lower_roman_paren,
-          $._list_lower_roman_parens,
-          $._list_upper_roman_period,
-          $._list_upper_roman_paren,
-          $._list_upper_roman_parens,
+      choice(
+        seq(
+          $._inline_line,
+          repeat(seq(alias($._heading_continuation, $.marker), $._inline_line)),
         ),
+        // Allow an empty heading
+        $._eof_or_newline,
       ),
-    _list_dash: ($) =>
-      seq(repeat1(alias($._list_item_dash, $.list_item)), $._block_close),
-    _list_item_dash: ($) =>
+
+    list: ($) => prec.left(choice($._list, $._list_definition)),
+
+    _list: ($) =>
+      seq(repeat1(alias($._list_item, $.list_item)), $._block_close),
+
+    _list_item: ($) =>
       seq(
         optional($._block_quote_prefix),
-        field("marker", $.list_marker_dash),
+        field(
+          "marker",
+          choice(
+            $.list_marker_dash,
+            $.list_marker_plus,
+            $.list_marker_star,
+            $.list_marker_task,
+            $.list_marker_decimal_period,
+            $.list_marker_decimal_paren,
+            $.list_marker_decimal_parens,
+            $.list_marker_lower_alpha_period,
+            $.list_marker_lower_alpha_paren,
+            $.list_marker_lower_alpha_parens,
+            $.list_marker_upper_alpha_period,
+            $.list_marker_upper_alpha_paren,
+            $.list_marker_upper_alpha_parens,
+            $.list_marker_lower_roman_period,
+            $.list_marker_lower_roman_paren,
+            $.list_marker_lower_roman_parens,
+            $.list_marker_upper_roman_period,
+            $.list_marker_upper_roman_paren,
+            $.list_marker_upper_roman_parens,
+          ),
+        ),
         field("content", $.list_item_content),
       ),
 
-    _list_plus: ($) =>
-      seq(repeat1(alias($._list_item_plus, $.list_item)), $._block_close),
-    _list_item_plus: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_plus),
-        field("content", $.list_item_content),
-      ),
-
-    _list_star: ($) =>
-      seq(repeat1(alias($._list_item_star, $.list_item)), $._block_close),
-    _list_item_star: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_star),
-        field("content", $.list_item_content),
-      ),
-
-    _list_task: ($) =>
-      seq(repeat1(alias($._list_item_task, $.list_item)), $._block_close),
-    _list_item_task: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_task),
-        field("content", $.list_item_content),
-      ),
     list_marker_task: ($) =>
       seq(
         $._list_marker_task_begin,
@@ -182,176 +157,6 @@ module.exports = grammar({
           ),
         ),
         $._list_item_end,
-      ),
-
-    _list_decimal_period: ($) =>
-      seq(
-        repeat1(alias($._list_item_decimal_period, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_decimal_period: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_decimal_period),
-        field("content", $.list_item_content),
-      ),
-    _list_decimal_paren: ($) =>
-      seq(
-        repeat1(alias($._list_item_decimal_paren, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_decimal_paren: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_decimal_paren),
-        field("content", $.list_item_content),
-      ),
-    _list_decimal_parens: ($) =>
-      seq(
-        repeat1(alias($._list_item_decimal_parens, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_decimal_parens: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_decimal_parens),
-        field("content", $.list_item_content),
-      ),
-
-    _list_lower_alpha_period: ($) =>
-      seq(
-        repeat1(alias($._list_item_lower_alpha_period, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_lower_alpha_period: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_lower_alpha_period),
-        field("content", $.list_item_content),
-      ),
-    _list_lower_alpha_paren: ($) =>
-      seq(
-        repeat1(alias($._list_item_lower_alpha_paren, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_lower_alpha_paren: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_lower_alpha_paren),
-        field("content", $.list_item_content),
-      ),
-    _list_lower_alpha_parens: ($) =>
-      seq(
-        repeat1(alias($._list_item_lower_alpha_parens, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_lower_alpha_parens: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_lower_alpha_parens),
-        field("content", $.list_item_content),
-      ),
-
-    _list_upper_alpha_period: ($) =>
-      seq(
-        repeat1(alias($._list_item_upper_alpha_period, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_upper_alpha_period: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_upper_alpha_period),
-        field("content", $.list_item_content),
-      ),
-    _list_upper_alpha_paren: ($) =>
-      seq(
-        repeat1(alias($._list_item_upper_alpha_paren, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_upper_alpha_paren: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_upper_alpha_paren),
-        field("content", $.list_item_content),
-      ),
-    _list_upper_alpha_parens: ($) =>
-      seq(
-        repeat1(alias($._list_item_upper_alpha_parens, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_upper_alpha_parens: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_upper_alpha_parens),
-        field("content", $.list_item_content),
-      ),
-
-    _list_lower_roman_period: ($) =>
-      seq(
-        repeat1(alias($._list_item_lower_roman_period, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_lower_roman_period: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_lower_roman_period),
-        field("content", $.list_item_content),
-      ),
-    _list_lower_roman_paren: ($) =>
-      seq(
-        repeat1(alias($._list_item_lower_roman_paren, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_lower_roman_paren: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_lower_roman_paren),
-        field("content", $.list_item_content),
-      ),
-    _list_lower_roman_parens: ($) =>
-      seq(
-        repeat1(alias($._list_item_lower_roman_parens, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_lower_roman_parens: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_lower_roman_parens),
-        field("content", $.list_item_content),
-      ),
-
-    _list_upper_roman_period: ($) =>
-      seq(
-        repeat1(alias($._list_item_upper_roman_period, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_upper_roman_period: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_upper_roman_period),
-        field("content", $.list_item_content),
-      ),
-    _list_upper_roman_paren: ($) =>
-      seq(
-        repeat1(alias($._list_item_upper_roman_paren, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_upper_roman_paren: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_upper_roman_paren),
-        field("content", $.list_item_content),
-      ),
-    _list_upper_roman_parens: ($) =>
-      seq(
-        repeat1(alias($._list_item_upper_roman_parens, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_upper_roman_parens: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_upper_roman_parens),
-        field("content", $.list_item_content),
       ),
 
     list_item_content: ($) =>
@@ -795,6 +600,7 @@ module.exports = grammar({
     image_description: ($) =>
       seq(
         $._image_description_begin,
+        $._image_open_check,
         $._square_bracket_span_mark_begin,
         optional($._inline),
         alias($._square_bracket_span_end, "]"),
@@ -816,6 +622,7 @@ module.exports = grammar({
       choice(
         seq(
           $._bracketed_text_begin,
+          $._bracketed_text_open_check,
           $._square_bracket_span_mark_begin,
           $._inline,
           // Alias to "]" to allow us to highlight it in Neovim.
@@ -831,6 +638,7 @@ module.exports = grammar({
     span: ($) =>
       seq(
         $._bracketed_text_begin,
+        $._bracketed_text_open_check,
         $._square_bracket_span_mark_begin,
         field("content", alias($._inline, $.content)),
         // Prefer span over regular text + inline attribute.
@@ -982,6 +790,9 @@ module.exports = grammar({
         seq("![", choice($._square_bracket_span_mark_begin, $._in_fallback)),
         seq("[", choice($._square_bracket_span_mark_begin, $._in_fallback)),
         seq("(", choice($._parens_span_mark_begin, $._in_fallback)),
+        // Balances the bracket count to allow nested links inside images
+        // for example.
+        $._square_bracket_span_text_close,
 
         // Autolink
         "<",
@@ -1183,6 +994,16 @@ module.exports = grammar({
     $._curly_bracket_span_end,
     $._square_bracket_span_mark_begin,
     $._square_bracket_span_end,
+
+    // Zero-width gate that stops image early if `![` isn't closed by a `]`.
+    // Also checks for "shorter element wins" precedence like `*![*](y)`
+    $._image_open_check,
+
+    // Zero-width gate that stops bracketed text, similarly to the image open check.
+    $._bracketed_text_open_check,
+
+    // Consumes the `]` in a bracketed text and decrements the bracket counter data.
+    $._square_bracket_span_text_close,
 
     // A signaling token that's used to signal that a fallback token should be scanned,
     // and should never be output.
