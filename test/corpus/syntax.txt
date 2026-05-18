@@ -290,6 +290,26 @@ Heading: after list
       (content))))
 
 ===============================================================================
+Heading: one space
+===============================================================================
+# 
+
+_a_
+-------------------------------------------------------------------------------
+
+(document
+  (section
+    (heading
+      (marker)
+      (content))
+    (section_content
+      (paragraph
+        (emphasis
+          (emphasis_begin)
+          (content)
+          (emphasis_end))))))
+
+===============================================================================
 Section: closed by the same level
 ===============================================================================
 # First
@@ -538,6 +558,32 @@ Block quote: contain code block
         (language)
         (code
           (block_quote_marker))))))
+===============================================================================
+Block quote: don't continue with only a space and newline
+===============================================================================
+> 
+
+a
+
+-------------------------------------------------------------------------------
+
+(document
+  (paragraph)
+  (paragraph))
+
+===============================================================================
+Block quote: don't continue directly before newline
+===============================================================================
+>
+
+a
+
+-------------------------------------------------------------------------------
+
+(document
+  (paragraph)
+  (paragraph))
+
 
 ===============================================================================
 Code block: without langugae
@@ -6888,3 +6934,156 @@ Inline: broken things
   (paragraph)
   (paragraph)
   (paragraph))
+
+===============================================================================
+Verbatim: in a row should not consume preceding whitespace
+:cst
+===============================================================================
+- List
+
+  After
+  `ab`
+
+-------------------------------------------------------------------------------
+
+0:0 - 4:0   document
+0:0 - 4:0     list
+0:0 - 4:0       list_item
+0:0 - 0:2         marker: list_marker_dash `- `
+0:2 - 4:0         content: list_item_content
+0:2 - 1:0           paragraph
+0:2 - 0:7             `List\n`
+2:2 - 4:0           paragraph
+3:2 - 3:6             verbatim
+3:2 - 3:3               begin_marker: verbatim_marker_begin `\``
+3:3 - 3:5               content: content `ab`
+3:5 - 3:6               end_marker: verbatim_marker_end `\``
+
+===============================================================================
+List: emphasis-bracketed item content does not cross lines
+===============================================================================
+- *0*:
+- *1*:
+- *2*:
+- *3*:
+- *4*:
+- *5*:
+- *6*:
+- *7*:
+
+-------------------------------------------------------------------------------
+
+(document
+  (list
+    (list_item
+      (list_marker_dash)
+      (list_item_content
+        (paragraph
+          (strong
+            (strong_begin)
+            (content)
+            (strong_end)))))
+    (list_item
+      (list_marker_dash)
+      (list_item_content
+        (paragraph
+          (strong
+            (strong_begin)
+            (content)
+            (strong_end)))))
+    (list_item
+      (list_marker_dash)
+      (list_item_content
+        (paragraph
+          (strong
+            (strong_begin)
+            (content)
+            (strong_end)))))
+    (list_item
+      (list_marker_dash)
+      (list_item_content
+        (paragraph
+          (strong
+            (strong_begin)
+            (content)
+            (strong_end)))))
+    (list_item
+      (list_marker_dash)
+      (list_item_content
+        (paragraph
+          (strong
+            (strong_begin)
+            (content)
+            (strong_end)))))
+    (list_item
+      (list_marker_dash)
+      (list_item_content
+        (paragraph
+          (strong
+            (strong_begin)
+            (content)
+            (strong_end)))))
+    (list_item
+      (list_marker_dash)
+      (list_item_content
+        (paragraph
+          (strong
+            (strong_begin)
+            (content)
+            (strong_end)))))
+    (list_item
+      (list_marker_dash)
+      (list_item_content
+        (paragraph
+          (strong
+            (strong_begin)
+            (content)
+            (strong_end)))))))
+
+===============================================================================
+List: multi-line emphasis inside list falls back to text without erroring
+===============================================================================
+- item
+
+  _multi line
+  emphasis._ trailing
+
+-------------------------------------------------------------------------------
+
+(document
+  (list
+    (list_item
+      (list_marker_dash)
+      (list_item_content
+        (paragraph)
+        (paragraph)))))
+
+===============================================================================
+Inline: lone star at start does not open strong; later complete pair wins
+:cst
+===============================================================================
+*not strong *strong*
+
+-------------------------------------------------------------------------------
+
+0:0  - 1:0    document
+0:0  - 1:0      paragraph
+0:0  - 0:1        "*"
+0:12 - 0:20       strong
+0:12 - 0:13         begin_marker: strong_begin
+0:12 - 0:13           "*"
+0:13 - 0:19         content: content `strong`
+0:19 - 0:20         end_marker: strong_end `*`
+
+===============================================================================
+Table: cell with parenthesized content
+===============================================================================
+| 1 | (right) |
+
+-------------------------------------------------------------------------------
+
+(document
+  (table
+    (table_row
+      (table_cell)
+      (table_cell))))
