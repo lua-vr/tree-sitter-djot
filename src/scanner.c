@@ -451,6 +451,14 @@ static void push_inline(Scanner *s, InlineType type, uint8_t data) {
   array_push(&s->open_inline, e);
 }
 
+// True when opening one more inline span would make the serialized state
+// exceed the buffer (4 scalars + block count + 2 bytes per block + 2 per
+// inline). Such depth can't be a valid document, so callers fall back to text.
+static bool inline_stack_full(const Scanner *s) {
+  size_t needed = 5 + 2 * s->open_blocks.size + 2 * (s->open_inline.size + 1);
+  return needed > TREE_SITTER_SERIALIZATION_BUFFER_SIZE;
+}
+
 static void remove_block(Scanner *s) {
   if (s->open_blocks.size > 0) {
     --s->open_blocks.size;
@@ -3113,6 +3121,11 @@ static bool check_inline_whitespace(TSLexer *lexer) {
 static bool mark_span_begin(Scanner *s, TSLexer *lexer,
                             const bool *valid_symbols, InlineType inline_type,
                             TokenType token) {
+  // The fallback branch only counts open tags; the else branch below pushes
+  // and would overflow serialization on pathological nesting, so refuse there.
+  if (!valid_symbols[IN_FALLBACK] && inline_stack_full(s)) {
+    return false;
+  }
   Inline *top = peek_inline(s);
   // Inside a list, require emhasis/strong's single-form opener to find its
   // close on the same line. Prevents a shifted GLR parse of `- *N*:` items
