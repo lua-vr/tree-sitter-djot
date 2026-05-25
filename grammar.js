@@ -370,7 +370,7 @@ module.exports = grammar({
     identifier: (_) => token(seq("#", token.immediate(/[^\s\}]+/))),
     key_value: ($) => seq(field("key", $.key), "=", field("value", $.value)),
     key: ($) => $._id,
-    value: (_) => choice(seq('"', /[^"\n]+/, '"'), /\w+/),
+    value: (_) => choice(/"([^"\\\r\n]|\\[^\r\n])*"/, /\w+/),
 
     // Paragraphs are a bit special parsing wise as it's the "fallback"
     // block, where everything that doesn't fit will go.
@@ -424,6 +424,8 @@ module.exports = grammar({
           // Span is declared separately because it always parses an `inline_attribute`,
           // while the attribute is optional for everything else.
           $.span,
+          // Parse standalone attributes (`text {.c}`) too.
+          $._standalone_inline_attribute,
           seq(
             choice(
               $._smart_punctuation,
@@ -650,6 +652,15 @@ module.exports = grammar({
       ),
 
     _bracketed_text_begin: (_) => "[",
+
+    _standalone_inline_attribute: ($) =>
+      seq(
+        $._whitespace1,
+        prec.dynamic(
+          2 * ELEMENT_PRECEDENCE,
+          field("attribute", $.inline_attribute),
+        ),
+      ),
 
     inline_attribute: ($) =>
       seq(

@@ -1776,21 +1776,8 @@
       "type": "CHOICE",
       "members": [
         {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "STRING",
-              "value": "\""
-            },
-            {
-              "type": "PATTERN",
-              "value": "[^\"\\n]+"
-            },
-            {
-              "type": "STRING",
-              "value": "\""
-            }
-          ]
+          "type": "PATTERN",
+          "value": "\"([^\"\\\\\\r\\n]|\\\\[^\\r\\n])*\""
         },
         {
           "type": "PATTERN",
@@ -1958,6 +1945,10 @@
           {
             "type": "SYMBOL",
             "name": "span"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_standalone_inline_attribute"
           },
           {
             "type": "SEQ",
@@ -2924,6 +2915,27 @@
     "_bracketed_text_begin": {
       "type": "STRING",
       "value": "["
+    },
+    "_standalone_inline_attribute": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_whitespace1"
+        },
+        {
+          "type": "PREC_DYNAMIC",
+          "value": 200,
+          "content": {
+            "type": "FIELD",
+            "name": "attribute",
+            "content": {
+              "type": "SYMBOL",
+              "name": "inline_attribute"
+            }
+          }
+        }
+      ]
     },
     "inline_attribute": {
       "type": "SEQ",
