@@ -2784,10 +2784,9 @@ static SpanType inline_span_type(InlineType type) {
   switch (type) {
   case EMPHASIS:
   case STRONG:
-    return SpanBracketedAndSingleNoWhitespace;
   case SUPERSCRIPT:
   case SUBSCRIPT:
-    return SpanBracketedAndSingle;
+    return SpanBracketedAndSingleNoWhitespace;
   case EMPHASIS_BRACKETED:
   case STRONG_BRACKETED:
   case HIGHLIGHTED:
@@ -3450,11 +3449,12 @@ static bool parse_span(Scanner *s, TSLexer *lexer, const bool *valid_symbols,
   if (!valid_symbols[begin_token] && !valid_symbols[end_token]) {
     return false;
   }
-  // End-only early-out: lookahead must be the marker char (or whitespace for
-  // bracketed emphasis/strong).
+  // End-only early-out: lookahead must be the marker char (or whitespace for a
+  // bracketed close that absorbs a trailing space).
   if (!valid_symbols[begin_token]) {
     bool ws_close =
-        is_single_emphasis_or_strong(element) && check_inline_whitespace(lexer);
+        inline_span_type(element) == SpanBracketedAndSingleNoWhitespace &&
+        check_inline_whitespace(lexer);
     if (lexer->lookahead != inline_marker(element) && !ws_close) {
       return false;
     }

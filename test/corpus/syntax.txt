@@ -5767,6 +5767,24 @@ Superscript: leading space after open marker is not a superscript
   (paragraph))
 
 ===============================================================================
+Subscript: bracketed form allows surrounding spaces
+===============================================================================
+{~a ~} {~ b ~}
+
+-------------------------------------------------------------------------------
+
+(document
+  (paragraph
+    (subscript
+      (subscript_begin)
+      (content)
+      (subscript_end))
+    (subscript
+      (subscript_begin)
+      (content)
+      (subscript_end))))
+
+===============================================================================
 Subscript: repeated markers across lines don't error
 ===============================================================================
 ~~~
