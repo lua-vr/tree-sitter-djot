@@ -2440,8 +2440,17 @@
           "value": "{^"
         },
         {
-          "type": "STRING",
-          "value": "^"
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "^"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_non_whitespace_check"
+            }
+          ]
         }
       ]
     },
@@ -2491,8 +2500,17 @@
           "value": "{~"
         },
         {
-          "type": "STRING",
-          "value": "~"
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "~"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_non_whitespace_check"
+            }
+          ]
         }
       ]
     },
@@ -3453,6 +3471,14 @@
           "value": "*"
         },
         {
+          "type": "STRING",
+          "value": "^"
+        },
+        {
+          "type": "STRING",
+          "value": "~"
+        },
+        {
           "type": "SEQ",
           "members": [
             {
@@ -3543,8 +3569,17 @@
                   "value": "{^"
                 },
                 {
-                  "type": "STRING",
-                  "value": "^"
+                  "type": "SEQ",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "^"
+                    },
+                    {
+                      "type": "SYMBOL",
+                      "name": "_non_whitespace_check"
+                    }
+                  ]
                 }
               ]
             },
@@ -3574,8 +3609,17 @@
                   "value": "{~"
                 },
                 {
-                  "type": "STRING",
-                  "value": "~"
+                  "type": "SEQ",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "~"
+                    },
+                    {
+                      "type": "SYMBOL",
+                      "name": "_non_whitespace_check"
+                    }
+                  ]
                 }
               ]
             },

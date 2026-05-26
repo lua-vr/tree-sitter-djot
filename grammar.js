@@ -543,7 +543,7 @@ module.exports = grammar({
         field("content", alias($._inline_without_trailing_space, $.content)),
         field("end_marker", $.superscript_end),
       ),
-    superscript_begin: (_) => choice("{^", "^"),
+    superscript_begin: ($) => choice("{^", seq("^", $._non_whitespace_check)),
 
     subscript: ($) =>
       seq(
@@ -552,7 +552,7 @@ module.exports = grammar({
         field("content", alias($._inline_without_trailing_space, $.content)),
         field("end_marker", $.subscript_end),
       ),
-    subscript_begin: (_) => choice("{~", "~"),
+    subscript_begin: ($) => choice("{~", seq("~", $._non_whitespace_check)),
 
     highlighted: ($) =>
       seq(
@@ -781,9 +781,11 @@ module.exports = grammar({
     // Block level collisions handled by the scanner scanning ahead.
     _symbol_fallback: ($) =>
       choice(
-        // Standalone emphasis and strong markers are required for backtracking
+        // Standalone span markers are required for backtracking.
         "_",
         "*",
+        "^",
+        "~",
         // Whitespace sensitive
         seq(
           choice("{_", seq("_", $._non_whitespace_check)),
@@ -793,12 +795,14 @@ module.exports = grammar({
           choice("{*", seq("*", $._non_whitespace_check)),
           choice($._strong_mark_begin, $._in_fallback),
         ),
-        // Not sensitive to whitespace
         seq(
-          choice("{^", "^"),
+          choice("{^", seq("^", $._non_whitespace_check)),
           choice($._superscript_mark_begin, $._in_fallback),
         ),
-        seq(choice("{~", "~"), choice($._subscript_mark_begin, $._in_fallback)),
+        seq(
+          choice("{~", seq("~", $._non_whitespace_check)),
+          choice($._subscript_mark_begin, $._in_fallback),
+        ),
         // Only bracketed versions
         seq("{=", choice($._highlighted_mark_begin, $._in_fallback)),
         seq("{+", choice($._insert_mark_begin, $._in_fallback)),
