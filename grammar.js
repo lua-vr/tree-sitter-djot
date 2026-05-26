@@ -968,9 +968,8 @@ module.exports = grammar({
     $._table_row_begin,
     // `_table_row_end_newline` consumes the ending newline.
     $._table_row_end_newline,
-    // Zero-width assertion that the next block-quote line is another table row,
-    // gating a row's continuation prefix so a non-row line (`> q`) ends the
-    // table instead of being greedily consumed.
+    // Continuation marker (consumes the `>`) emitted only when the next
+    // block-quote line is another table row, so a non-row line ends the table.
     $._table_continues,
     // `_table_cell_end` consumes the ending `|`.
     $._table_cell_end,
@@ -991,7 +990,7 @@ module.exports = grammar({
 
     // Inline elements.
 
-    // Zero-width check if a standalone comment is valid.
+    // Begins a standalone inline comment (consumes the `{`).
     $._inline_comment_begin,
 
     // Verbatim is handled externally to match a varying number of `,
