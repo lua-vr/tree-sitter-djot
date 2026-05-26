@@ -1068,12 +1068,34 @@ static bool parse_block_quote(Scanner *s, TSLexer *lexer,
       }
     }
     if (marker_line_empty) {
-      // Marker line is empty, if next line is empty as well we should not start
-      // a block quote.
-      consume_whitespace(s, lexer);
-      if (lexer->lookahead == '\n' || lexer->eof(lexer)) {
+      // Skip a run of empty `>` lines; only refuse the quote if it's empty all
+      // the way down (else `>\n>\n` opens a contentless quote and ERRORs).
+      lexer->mark_end(lexer);
+      bool has_content;
+      for (;;) {
+        consume_whitespace(s, lexer);
+        if (lexer->lookahead == '>') {
+          advance(s, lexer);
+          if (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
+            advance(s, lexer);
+          }
+          if (lexer->lookahead == '\n') {
+            advance(s, lexer);
+            continue;
+          }
+          has_content = !lexer->eof(lexer);
+          break;
+        }
+        has_content = lexer->lookahead != '\n' && !lexer->eof(lexer);
+        break;
+      }
+      if (!has_content) {
         return false;
       }
+      push_block(s, BLOCK_QUOTE, marker_count);
+      s->block_quote_level = ending_newline ? 0 : marker_count;
+      lexer->result_symbol = BLOCK_QUOTE_BEGIN;
+      return true;
     }
   }
 
