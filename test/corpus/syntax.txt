@@ -1546,6 +1546,57 @@ Block attribute: trailing text inside list item
         (paragraph)))))
 
 ===============================================================================
+Block attribute: trailing text inside block quote
+===============================================================================
+> {.c} more
+-------------------------------------------------------------------------------
+
+(document
+  (block_quote
+    (block_quote_marker)
+    (content
+      (block_attribute
+        (args
+          (class)))
+      (paragraph))))
+
+===============================================================================
+Block attribute: comment with trailing text inside block quote
+===============================================================================
+> {% comment %} more
+-------------------------------------------------------------------------------
+
+(document
+  (block_quote
+    (block_quote_marker)
+    (content
+      (block_attribute
+        (args
+          (comment
+            (content))))
+      (paragraph))))
+
+===============================================================================
+Block attribute: trailing text after block quote content
+===============================================================================
+> a
+>
+> {.c} more
+-------------------------------------------------------------------------------
+
+(document
+  (block_quote
+    (block_quote_marker)
+    (content
+      (paragraph)
+      (block_quote_marker)
+      (block_quote_marker)
+      (block_attribute
+        (args
+          (class)))
+      (paragraph))))
+
+===============================================================================
 Div: simple
 ===============================================================================
 :::

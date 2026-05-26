@@ -313,7 +313,12 @@ module.exports = grammar({
     _block_quote_content: ($) =>
       seq(
         choice($.heading, $._block_element),
-        repeat(seq($._block_quote_prefix, optional($._block_element))),
+        repeat(
+          choice(
+            seq($._block_quote_prefix, optional($._block_element)),
+            seq($._block_attribute_quote_continuation, $._block_element),
+          ),
+        ),
       ),
     _block_quote_prefix: ($) =>
       prec.left(
@@ -970,6 +975,9 @@ module.exports = grammar({
     $._comment_close,
     // Terminates a block attribute after its closing `}`.
     $._block_attribute_end,
+    // Zero-width bridge attaching a block attribute's trailing same-line content
+    // to an open block quote (`> {.c} more`).
+    $._block_attribute_quote_continuation,
 
     // Inline elements.
 

@@ -73,6 +73,7 @@ typedef enum {
   COMMENT_END_MARKER,
   COMMENT_CLOSE,
   BLOCK_ATTRIBUTE_END,
+  BLOCK_ATTRIBUTE_QUOTE_CONTINUATION,
 
   INLINE_COMMENT_BEGIN,
 
@@ -256,6 +257,10 @@ static const uint8_t STATE_CONSUMED_INDENT_AT_SCAN_START = 1 << 4;
 // 2-bit slot: which of `*`/`_` precedes a `[`.
 // Needed because they emit a non-whitespace check.
 static const uint8_t STATE_PENDING_OPENER_MASK = 3 << 5;
+
+// Gates the block-attribute-trailing bridge so it can't fire after an ordinary
+// `>` continuation. Cleared at the next line start.
+static const uint8_t STATE_BLOCK_ATTRIBUTE_TRAILING = 1 << 7;
 
 static char pending_opener_marker(uint8_t state) {
   switch (state & STATE_PENDING_OPENER_MASK) {
@@ -2613,8 +2618,29 @@ static bool parse_block_attribute_end(Scanner *s, TSLexer *lexer) {
     // Keep the mid-line column as indent so trailing content isn't seen as a
     // dedent that closes the list/quote.
     s->indent = column;
+    s->state |= STATE_BLOCK_ATTRIBUTE_TRAILING;
   }
   lexer->result_symbol = BLOCK_ATTRIBUTE_END;
+  return true;
+}
+
+// Zero-width bridge attaching a block attribute's trailing same-line content to
+// an open block quote (gated before a required element, so it can't loop).
+static bool parse_block_attribute_quote_continuation(Scanner *s,
+                                                      TSLexer *lexer,
+                                                      uint32_t start_column) {
+  if (!(s->state & STATE_BLOCK_ATTRIBUTE_TRAILING)) {
+    return false;
+  }
+  if (start_column == 0 || lexer->eof(lexer) || lexer->lookahead == '\n' ||
+      lexer->lookahead == '>') {
+    return false;
+  }
+  if (!find_block(s, BLOCK_QUOTE)) {
+    return false;
+  }
+  s->state &= ~STATE_BLOCK_ATTRIBUTE_TRAILING;
+  lexer->result_symbol = BLOCK_ATTRIBUTE_QUOTE_CONTINUATION;
   return true;
 }
 
@@ -3342,7 +3368,9 @@ bool tree_sitter_djot_external_scanner_scan(void *payload, TSLexer *lexer,
   if (lexer->lookahead == '\r') {
     advance(s, lexer);
   }
-  if (lexer->get_column(lexer) == 0) {
+  uint32_t start_column = lexer->get_column(lexer);
+  if (start_column == 0) {
+    s->state &= ~STATE_BLOCK_ATTRIBUTE_TRAILING;
     s->indent = consume_whitespace(s, lexer);
     if (s->indent > 0) {
       s->state |= STATE_CONSUMED_INDENT_AT_SCAN_START;
@@ -3396,6 +3424,11 @@ bool tree_sitter_djot_external_scanner_scan(void *payload, TSLexer *lexer,
 
   if (valid_symbols[BLOCK_ATTRIBUTE_END] &&
       parse_block_attribute_end(s, lexer)) {
+    return true;
+  }
+
+  if (valid_symbols[BLOCK_ATTRIBUTE_QUOTE_CONTINUATION] &&
+      parse_block_attribute_quote_continuation(s, lexer, start_column)) {
     return true;
   }
 
@@ -3790,6 +3823,8 @@ static char *token_type_s(TokenType t) {
     return "COMMENT_CLOSE";
   case BLOCK_ATTRIBUTE_END:
     return "BLOCK_ATTRIBUTE_END";
+  case BLOCK_ATTRIBUTE_QUOTE_CONTINUATION:
+    return "BLOCK_ATTRIBUTE_QUOTE_CONTINUATION";
 
   case VERBATIM_BEGIN:
     return "VERBATIM_BEGIN";

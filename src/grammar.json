@@ -1463,21 +1463,39 @@
         {
           "type": "REPEAT",
           "content": {
-            "type": "SEQ",
+            "type": "CHOICE",
             "members": [
               {
-                "type": "SYMBOL",
-                "name": "_block_quote_prefix"
-              },
-              {
-                "type": "CHOICE",
+                "type": "SEQ",
                 "members": [
                   {
                     "type": "SYMBOL",
-                    "name": "_block_element"
+                    "name": "_block_quote_prefix"
                   },
                   {
-                    "type": "BLANK"
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "SYMBOL",
+                        "name": "_block_element"
+                      },
+                      {
+                        "type": "BLANK"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "SYMBOL",
+                    "name": "_block_attribute_quote_continuation"
+                  },
+                  {
+                    "type": "SYMBOL",
+                    "name": "_block_element"
                   }
                 ]
               }
@@ -4072,6 +4090,10 @@
     {
       "type": "SYMBOL",
       "name": "_block_attribute_end"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_block_attribute_quote_continuation"
     },
     {
       "type": "SYMBOL",
