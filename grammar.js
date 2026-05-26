@@ -539,7 +539,7 @@ module.exports = grammar({
       seq(
         field("begin_marker", $.superscript_begin),
         $._superscript_mark_begin,
-        field("content", alias($._inline, $.content)),
+        field("content", alias($._inline_without_trailing_space, $.content)),
         field("end_marker", $.superscript_end),
       ),
     superscript_begin: (_) => choice("{^", "^"),
@@ -548,7 +548,7 @@ module.exports = grammar({
       seq(
         field("begin_marker", $.subscript_begin),
         $._subscript_mark_begin,
-        field("content", alias($._inline, $.content)),
+        field("content", alias($._inline_without_trailing_space, $.content)),
         field("end_marker", $.subscript_end),
       ),
     subscript_begin: (_) => choice("{~", "~"),

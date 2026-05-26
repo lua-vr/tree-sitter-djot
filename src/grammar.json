@@ -2412,7 +2412,7 @@
             "type": "ALIAS",
             "content": {
               "type": "SYMBOL",
-              "name": "_inline"
+              "name": "_inline_without_trailing_space"
             },
             "named": true,
             "value": "content"
@@ -2463,7 +2463,7 @@
             "type": "ALIAS",
             "content": {
               "type": "SYMBOL",
-              "name": "_inline"
+              "name": "_inline_without_trailing_space"
             },
             "named": true,
             "value": "content"
