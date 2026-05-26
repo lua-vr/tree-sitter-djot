@@ -186,7 +186,9 @@ module.exports = grammar({
       ),
     _table_row: ($) =>
       seq(
-        optional($._block_quote_prefix),
+        optional(
+          repeat1(alias($._table_continues, $.block_quote_marker)),
+        ),
         choice($.table_header, $.table_separator, $.table_row),
       ),
     table_header: ($) =>
@@ -962,6 +964,10 @@ module.exports = grammar({
     $._table_row_begin,
     // `_table_row_end_newline` consumes the ending newline.
     $._table_row_end_newline,
+    // Zero-width assertion that the next block-quote line is another table row,
+    // gating a row's continuation prefix so a non-row line (`> q`) ends the
+    // table instead of being greedily consumed.
+    $._table_continues,
     // `_table_cell_end` consumes the ending `|`.
     $._table_cell_end,
     // Table captions have significant whitespace but contain only inline.

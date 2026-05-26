@@ -744,8 +744,16 @@
           "type": "CHOICE",
           "members": [
             {
-              "type": "SYMBOL",
-              "name": "_block_quote_prefix"
+              "type": "REPEAT1",
+              "content": {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_table_continues"
+                },
+                "named": true,
+                "value": "block_quote_marker"
+              }
             },
             {
               "type": "BLANK"
@@ -4062,6 +4070,10 @@
     {
       "type": "SYMBOL",
       "name": "_table_row_end_newline"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_table_continues"
     },
     {
       "type": "SYMBOL",

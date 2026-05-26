@@ -66,6 +66,7 @@ typedef enum {
   TABLE_SEPARATOR_BEGIN,
   TABLE_ROW_BEGIN,
   TABLE_ROW_END_NEWLINE,
+  TABLE_CONTINUES,
   TABLE_CELL_END,
   TABLE_CAPTION_BEGIN,
   TABLE_CAPTION_END,
@@ -1035,11 +1036,20 @@ static bool parse_block_quote(Scanner *s, TSLexer *lexer,
   }
 
   // If we should continue an open block quote.
-  if (valid_symbols[BLOCK_QUOTE_CONTINUATION] && has_marker &&
-      matching_block_pos != 0) {
-    lexer->mark_end(lexer);
-    output_block_quote_continuation(s, lexer, marker_count, ending_newline);
-    return true;
+  if (has_marker && matching_block_pos != 0) {
+    // A continuation right before a table row continues the table; a non-row
+    // line (`> q`) ends it instead.
+    if (valid_symbols[TABLE_CONTINUES] && lexer->lookahead == '|') {
+      lexer->mark_end(lexer);
+      s->block_quote_level = ending_newline ? 0 : marker_count;
+      lexer->result_symbol = TABLE_CONTINUES;
+      return true;
+    }
+    if (valid_symbols[BLOCK_QUOTE_CONTINUATION]) {
+      lexer->mark_end(lexer);
+      output_block_quote_continuation(s, lexer, marker_count, ending_newline);
+      return true;
+    }
   }
 
   // Don't open a new block quote for a marker with just a space and following
@@ -3912,6 +3922,8 @@ static char *token_type_s(TokenType t) {
     return "TABLE_ROW_BEGIN";
   case TABLE_ROW_END_NEWLINE:
     return "TABLE_ROW_END_NEWLINE";
+  case TABLE_CONTINUES:
+    return "TABLE_CONTINUES";
   case TABLE_CELL_END:
     return "TABLE_CELL_END";
   case TABLE_CAPTION_BEGIN:
