@@ -595,6 +595,26 @@ Block quote: consecutive empty markers don't open a quote
 (document
   (paragraph))
 
+===============================================================================
+Block quote: empty space marker line before a list
+===============================================================================
+>
+> 
+1. one
+
+-------------------------------------------------------------------------------
+
+(document
+  (block_quote
+    (block_quote_marker)
+    (content
+      (list
+        (list_item
+          (block_quote_marker)
+          (list_marker_decimal_period)
+          (list_item_content
+            (paragraph)))))))
+
 
 ===============================================================================
 Code block: without langugae

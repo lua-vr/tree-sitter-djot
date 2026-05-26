@@ -999,6 +999,18 @@ static bool parse_block_quote(Scanner *s, TSLexer *lexer,
   // A valid marker is a '> ' or '>\n'.
   bool has_marker = scan_block_quote_marker(s, lexer, &ending_newline);
 
+  // Treat an empty `> ` line like `>\n` (consume its newline); else a
+  // following list/table mis-attaches the orphaned newline.
+  if (has_marker && !ending_newline) {
+    if (lexer->lookahead == '\r') {
+      advance(s, lexer);
+    }
+    if (lexer->lookahead == '\n') {
+      advance(s, lexer);
+      ending_newline = true;
+    }
+  }
+
   // No open inline at block boundary.
   bool any_open_inline = s->open_inline.size > 0;
 
