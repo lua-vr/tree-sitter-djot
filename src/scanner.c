@@ -1876,12 +1876,39 @@ static bool parse_colon(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
 
   size_t from_top = number_of_blocks_from_top(s, DIV, colons);
 
-  if (from_top == 0) {
+  // A fence carrying a class name always opens a (possibly nested) div, never
+  // closes one. A class must be separated from the colons by whitespace, so we
+  // only peek when a space/tab follows. Detecting it here lets us both open the
+  // nested div (`::: a` then `::: b`) and *refuse* to close in parser branches
+  // that only allow a close — otherwise the open div would close as a sibling.
+  bool has_class = false;
+  if (from_top >= 1 && s->open_inline.size == 0 &&
+      (lexer->lookahead == ' ' || lexer->lookahead == '\t')) {
+    // Mark the boundary after the colons before the peek advances past it, so a
+    // resulting DIV_BEGIN/DIV_END consumes exactly the colons.
+    lexer->mark_end(lexer);
+    while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
+      advance(s, lexer);
+    }
+    has_class = lexer->lookahead != '\n' && lexer->lookahead != '\r' &&
+                !lexer->eof(lexer);
+    if (has_class && !valid_symbols[DIV_BEGIN]) {
+      // This fence opens a div, but this parser branch can't open one (only
+      // close). Refuse so the branch that nests the div wins.
+      return false;
+    }
+  }
+
+  if (from_top == 0 || has_class) {
     if (!valid_symbols[DIV_BEGIN]) {
       return false;
     }
     push_block(s, DIV, colons);
-    lexer->mark_end(lexer);
+    // When `has_class`, the boundary was already marked before the peek;
+    // re-marking would swallow the whitespace before the class.
+    if (!has_class) {
+      lexer->mark_end(lexer);
+    }
     lexer->result_symbol = DIV_BEGIN;
     return true;
   }
