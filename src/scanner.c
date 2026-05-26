@@ -1448,6 +1448,35 @@ static uint8_t consume_line_with_char_or_whitespace(Scanner *s, TSLexer *lexer,
   return seen;
 }
 
+// Looks (from just after an opening `---`) for a later closing fence; without
+// one, a leading `---` is a thematic break, not frontmatter.
+static bool scan_for_frontmatter_close(Scanner *s, TSLexer *lexer) {
+  while (!lexer->eof(lexer) && lexer->lookahead != '\n') {
+    advance(s, lexer);
+  }
+  while (!lexer->eof(lexer)) {
+    advance(s, lexer);
+    uint8_t dashes = 0;
+    while (lexer->lookahead == '-') {
+      advance(s, lexer);
+      ++dashes;
+    }
+    if (dashes >= 3) {
+      while (lexer->lookahead == ' ' || lexer->lookahead == '\t' ||
+             lexer->lookahead == '\r') {
+        advance(s, lexer);
+      }
+      if (lexer->lookahead == '\n' || lexer->eof(lexer)) {
+        return true;
+      }
+    }
+    while (!lexer->eof(lexer) && lexer->lookahead != '\n') {
+      advance(s, lexer);
+    }
+  }
+  return false;
+}
+
 // Either parse a list item marker (like '- ') or a thematic break
 // (like '- - -').
 static bool parse_list_marker_or_thematic_break(
@@ -1489,8 +1518,14 @@ static bool parse_list_marker_or_thematic_break(
   if (check_frontmatter) {
     marker_count += consume_chars(s, lexer, marker);
     if (marker_count >= 3) {
-      lexer->result_symbol = FRONTMATTER_MARKER;
       lexer->mark_end(lexer);
+      // Only the opening fence (where a thematic break is also valid) needs
+      // disambiguating; a leading `---` without a closing fence is a break.
+      if (can_be_thematic_break && !scan_for_frontmatter_close(s, lexer)) {
+        lexer->result_symbol = thematic_break_type;
+        return true;
+      }
+      lexer->result_symbol = FRONTMATTER_MARKER;
       return true;
     }
   }
