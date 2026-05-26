@@ -811,12 +811,25 @@ static bool parse_verbatim_content(Scanner *s, TSLexer *lexer) {
   return true;
 }
 
+// A closing code fence must be bare; an info string after the ticks means it
+// can't close, so the line is content.
+static bool fence_has_info_string(Scanner *s, TSLexer *lexer) {
+  while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
+    advance(s, lexer);
+  }
+  return lexer->lookahead != '\n' && lexer->lookahead != '\r' &&
+         !lexer->eof(lexer);
+}
+
 static bool try_end_code_block(Scanner *s, TSLexer *lexer, uint8_t ticks) {
   Block *top = peek_block(s);
   if (!top || top->type != CODE_BLOCK) {
     return false;
   }
   if (top->data != ticks) {
+    return false;
+  }
+  if (fence_has_info_string(s, lexer)) {
     return false;
   }
   remove_block(s);
@@ -831,6 +844,9 @@ static bool try_close_code_block(Scanner *s, TSLexer *lexer, uint8_t ticks) {
     return false;
   }
   if (top->data != ticks) {
+    return false;
+  }
+  if (fence_has_info_string(s, lexer)) {
     return false;
   }
   lexer->result_symbol = BLOCK_CLOSE;
