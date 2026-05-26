@@ -1476,6 +1476,8 @@ static bool scan_for_frontmatter_close(Scanner *s, TSLexer *lexer) {
   while (!lexer->eof(lexer) && lexer->lookahead != '\n') {
     advance(s, lexer);
   }
+  // Content is required, so `---\n---` (no content line) is not frontmatter.
+  bool seen_content = false;
   while (!lexer->eof(lexer)) {
     advance(s, lexer);
     uint8_t dashes = 0;
@@ -1489,9 +1491,10 @@ static bool scan_for_frontmatter_close(Scanner *s, TSLexer *lexer) {
         advance(s, lexer);
       }
       if (lexer->lookahead == '\n' || lexer->eof(lexer)) {
-        return true;
+        return seen_content;
       }
     }
+    seen_content = true;
     while (!lexer->eof(lexer) && lexer->lookahead != '\n') {
       advance(s, lexer);
     }
