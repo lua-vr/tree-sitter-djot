@@ -1124,6 +1124,10 @@
       "type": "SEQ",
       "members": [
         {
+          "type": "SYMBOL",
+          "name": "_div_opener_check"
+        },
+        {
           "type": "ALIAS",
           "content": {
             "type": "SYMBOL",
@@ -3906,6 +3910,10 @@
     {
       "type": "SYMBOL",
       "name": "_heading_continuation"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_div_opener_check"
     },
     {
       "type": "SYMBOL",

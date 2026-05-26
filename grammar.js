@@ -263,6 +263,7 @@ module.exports = grammar({
       ),
     _div_marker_begin: ($) =>
       seq(
+        $._div_opener_check,
         alias($._div_begin, $.div_marker_begin),
         optional(seq($._whitespace1, field("class", $.class_name))),
       ),
@@ -878,6 +879,9 @@ module.exports = grammar({
     // they match the number of `#` (or there's no `#`).
     $._heading_continuation,
 
+    // Zero-width gate emitted before `_div_begin` when a `:::` fence opens
+    // (rather than closes) a div.
+    $._div_opener_check,
     // Matches div markers with varying number of `:`.
     $._div_begin,
     $._div_end,
