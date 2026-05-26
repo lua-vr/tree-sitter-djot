@@ -72,6 +72,7 @@ typedef enum {
   BLOCK_ATTRIBUTE_BEGIN,
   COMMENT_END_MARKER,
   COMMENT_CLOSE,
+  BLOCK_ATTRIBUTE_END,
 
   INLINE_COMMENT_BEGIN,
 
@@ -2598,6 +2599,25 @@ static bool parse_newline(Scanner *s, TSLexer *lexer,
   return false;
 }
 
+// Terminates a block attribute after its closing `}`.
+static bool parse_block_attribute_end(Scanner *s, TSLexer *lexer) {
+  uint32_t column = lexer->get_column(lexer);
+  consume_whitespace(s, lexer);
+  if (lexer->lookahead == '\n') {
+    advance(s, lexer);
+    lexer->mark_end(lexer);
+    s->block_quote_level = 0;
+  } else if (lexer->eof(lexer)) {
+    lexer->mark_end(lexer);
+  } else {
+    // Keep the mid-line column as indent so trailing content isn't seen as a
+    // dedent that closes the list/quote.
+    s->indent = column;
+  }
+  lexer->result_symbol = BLOCK_ATTRIBUTE_END;
+  return true;
+}
+
 static bool parse_comment_end(Scanner *s, TSLexer *lexer,
                               const bool *valid_symbols) {
   if (valid_symbols[COMMENT_END_MARKER] && lexer->lookahead == '%') {
@@ -3374,6 +3394,11 @@ bool tree_sitter_djot_external_scanner_scan(void *payload, TSLexer *lexer,
     return true;
   }
 
+  if (valid_symbols[BLOCK_ATTRIBUTE_END] &&
+      parse_block_attribute_end(s, lexer)) {
+    return true;
+  }
+
   // Needs to be done before indented content spacer and list item continuation
   if (lexer->lookahead == '`' && parse_backtick(s, lexer, valid_symbols)) {
     return true;
@@ -3763,6 +3788,8 @@ static char *token_type_s(TokenType t) {
     return "COMMENT_END_MARKER";
   case COMMENT_CLOSE:
     return "COMMENT_CLOSE";
+  case BLOCK_ATTRIBUTE_END:
+    return "BLOCK_ATTRIBUTE_END";
 
   case VERBATIM_BEGIN:
     return "VERBATIM_BEGIN";

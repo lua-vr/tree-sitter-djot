@@ -1702,7 +1702,7 @@
         },
         {
           "type": "SYMBOL",
-          "name": "_newline"
+          "name": "_block_attribute_end"
         }
       ]
     },
@@ -4068,6 +4068,10 @@
     {
       "type": "SYMBOL",
       "name": "_comment_close"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_block_attribute_end"
     },
     {
       "type": "SYMBOL",

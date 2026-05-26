@@ -364,7 +364,7 @@ module.exports = grammar({
           ),
         ),
         "}",
-        $._newline,
+        $._block_attribute_end,
       ),
     class: ($) => seq(".", alias($.class_name, "class")),
     identifier: (_) => token(seq("#", token.immediate(/[^\s\}]+/))),
@@ -968,6 +968,8 @@ module.exports = grammar({
     // A comment can be closed by a `%` or implicitly when the attribute closes at `}`.
     $._comment_end_marker,
     $._comment_close,
+    // Terminates a block attribute after its closing `}`.
+    $._block_attribute_end,
 
     // Inline elements.
 
