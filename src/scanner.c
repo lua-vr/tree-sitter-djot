@@ -1940,6 +1940,11 @@ static bool parse_list_item_end(Scanner *s, TSLexer *lexer,
 }
 
 static bool parse_colon(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
+  // A `:::` inside a code block is code, never a div fence.
+  Block *top = peek_block(s);
+  if (top && top->type == CODE_BLOCK) {
+    return false;
+  }
   bool can_be_div = valid_symbols[DIV_OPENER_CHECK] || valid_symbols[DIV_BEGIN] ||
                     valid_symbols[DIV_END] || valid_symbols[BLOCK_CLOSE];
   if (!valid_symbols[LIST_MARKER_DEFINITION] && !can_be_div) {
