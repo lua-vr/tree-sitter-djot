@@ -96,6 +96,10 @@
         {
           "type": "SYMBOL",
           "name": "_newline"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_block_attribute_section_check"
         }
       ]
     },
@@ -194,6 +198,13 @@
     "section": {
       "type": "SEQ",
       "members": [
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "block_attribute"
+          }
+        },
         {
           "type": "FIELD",
           "name": "heading",
@@ -3865,6 +3876,10 @@
   ],
   "conflicts": [
     [
+      "_block_element",
+      "section"
+    ],
+    [
       "emphasis_begin",
       "_symbol_fallback"
     ],
@@ -4138,6 +4153,10 @@
     {
       "type": "SYMBOL",
       "name": "_table_caption_end"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_block_attribute_section_check"
     },
     {
       "type": "SYMBOL",

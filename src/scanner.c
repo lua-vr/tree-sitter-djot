@@ -71,6 +71,7 @@ typedef enum {
   TABLE_CELL_END,
   TABLE_CAPTION_BEGIN,
   TABLE_CAPTION_END,
+  BLOCK_ATTRIBUTE_SECTION_CHECK,
   BLOCK_ATTRIBUTE_BEGIN,
   COMMENT_END_MARKER,
   COMMENT_CLOSE,
@@ -229,6 +230,10 @@ typedef struct {
 
   // Parser state flags.
   uint8_t state;
+
+  // Set after emitting `BLOCK_ATTRIBUTE_SECTION_CHECK`, so the next scan at the
+  // same `{` skips the check and scans normally.
+  uint8_t section_checked;
 } Scanner;
 
 // Tracks if a `[` starts an inline link.
@@ -2422,9 +2427,106 @@ static bool scan_value(Scanner *s, TSLexer *lexer) {
   }
 }
 
+// Scan the body of an attribute after the `{`, stopping at the closing `}`.
+static bool scan_attribute_body(Scanner *s, TSLexer *lexer, uint8_t indent,
+                                bool *can_be_inline_comment,
+                                bool *must_be_inline_comment) {
+  while (!lexer->eof(lexer)) {
+    uint8_t space = consume_whitespace(s, lexer);
+    if (space > 0) {
+      *can_be_inline_comment = false;
+    }
+
+    switch (lexer->lookahead) {
+    case '\\':
+      *can_be_inline_comment = false;
+      advance(s, lexer);
+      advance(s, lexer);
+      break;
+    case '}':
+      return true;
+    case '.':
+      *can_be_inline_comment = false;
+      advance(s, lexer);
+      if (!scan_identifier(s, lexer)) {
+        return false;
+      }
+      break;
+    case '#':
+      *can_be_inline_comment = false;
+      advance(s, lexer);
+      if (!scan_identifier(s, lexer)) {
+        return false;
+      }
+      break;
+    case '%':
+      if (!scan_comment(s, lexer, indent, must_be_inline_comment)) {
+        return false;
+      }
+      break;
+    case '\n':
+      *can_be_inline_comment = false;
+      advance(s, lexer);
+      // Need to match indent!
+      if (indent != consume_whitespace(s, lexer)) {
+        return false;
+      }
+      // Can only have one newline in a row for a valid attribute.
+      if (lexer->lookahead == '\n') {
+        return false;
+      }
+      break;
+    default:
+      *can_be_inline_comment = false;
+      // First scan a key
+      if (!scan_identifier(s, lexer)) {
+        return false;
+      }
+      // Must have equals
+      if (lexer->lookahead != '=') {
+        return false;
+      }
+      advance(s, lexer);
+      // Then scan the value
+      if (!scan_value(s, lexer)) {
+        return false;
+      }
+    }
+  }
+  return false;
+}
+
+
+// Look past consecutive block attributes starting at `{` and check if they're
+// followed by a heading that closes a section of `level`.
+static bool block_attributes_precede_closing_heading(Scanner *s,
+                                                     TSLexer *lexer,
+                                                     uint8_t level) {
+  while (lexer->lookahead == '{') {
+    advance(s, lexer);
+    bool can_be_inline_comment = lexer->lookahead == '%';
+    bool must_be_inline_comment = false;
+    if (!scan_attribute_body(s, lexer, s->indent + 1, &can_be_inline_comment,
+                             &must_be_inline_comment) ||
+        can_be_inline_comment || must_be_inline_comment) {
+      return false;
+    }
+    advance(s, lexer); // Consume the `}`.
+    consume_whitespace(s, lexer);
+    if (lexer->lookahead != '\n') {
+      return false;
+    }
+    advance(s, lexer);
+    if (consume_whitespace(s, lexer) != s->indent) {
+      return false;
+    }
+  }
+  uint8_t hash_count = consume_chars(s, lexer, '#');
+  return hash_count > 0 && hash_count <= level && lexer->lookahead == ' ';
+}
+
 static bool parse_open_curly_bracket(Scanner *s, TSLexer *lexer,
                                      const bool *valid_symbols) {
-
   if (!valid_symbols[BLOCK_ATTRIBUTE_BEGIN] &&
       !valid_symbols[INLINE_COMMENT_BEGIN]) {
     return false;
@@ -2443,78 +2545,46 @@ static bool parse_open_curly_bracket(Scanner *s, TSLexer *lexer,
   bool can_be_inline_comment = lexer->lookahead == '%';
   bool must_be_inline_comment = false;
 
-  while (!lexer->eof(lexer)) {
-    uint8_t space = consume_whitespace(s, lexer);
-    if (space > 0) {
-      can_be_inline_comment = false;
-    }
-
-    switch (lexer->lookahead) {
-    case '\\':
-      can_be_inline_comment = false;
-      advance(s, lexer);
-      advance(s, lexer);
-      break;
-    case '}':
-      if (can_be_inline_comment && valid_symbols[INLINE_COMMENT_BEGIN]) {
-        lexer->result_symbol = INLINE_COMMENT_BEGIN;
-        return true;
-      } else if (!must_be_inline_comment &&
-                 valid_symbols[BLOCK_ATTRIBUTE_BEGIN]) {
-        lexer->result_symbol = BLOCK_ATTRIBUTE_BEGIN;
-        return true;
-      } else {
-        return false;
-      }
-    case '.':
-      can_be_inline_comment = false;
-      advance(s, lexer);
-      if (!scan_identifier(s, lexer)) {
-        return false;
-      }
-      break;
-    case '#':
-      can_be_inline_comment = false;
-      advance(s, lexer);
-      if (!scan_identifier(s, lexer)) {
-        return false;
-      }
-      break;
-    case '%':
-      if (!scan_comment(s, lexer, indent, &must_be_inline_comment)) {
-        return false;
-      }
-      break;
-    case '\n':
-      can_be_inline_comment = false;
-      advance(s, lexer);
-      // Need to match indent!
-      if (indent != consume_whitespace(s, lexer)) {
-        return false;
-      }
-      // Can only have one newline in a row for a valid attribute.
-      if (lexer->lookahead == '\n') {
-        return false;
-      }
-      break;
-    default:
-      can_be_inline_comment = false;
-      // First scan a key
-      if (!scan_identifier(s, lexer)) {
-        return false;
-      }
-      // Must have equals
-      if (lexer->lookahead != '=') {
-        return false;
-      }
-      advance(s, lexer);
-      // Then scan the value
-      if (!scan_value(s, lexer)) {
-        return false;
-      }
-    }
+  bool ok = scan_attribute_body(s, lexer, indent, &can_be_inline_comment,
+                                &must_be_inline_comment);
+  if (!ok) {
+    return false;
+  }
+  if (can_be_inline_comment && valid_symbols[INLINE_COMMENT_BEGIN]) {
+    lexer->result_symbol = INLINE_COMMENT_BEGIN;
+    return true;
+  }
+  if (!must_be_inline_comment && valid_symbols[BLOCK_ATTRIBUTE_BEGIN]) {
+    lexer->result_symbol = BLOCK_ATTRIBUTE_BEGIN;
+    return true;
   }
   return false;
+}
+
+// Zero-width gate at a `{` in a section: attributes directly before a heading
+// belong to that heading's section, so close the current section first if the
+// heading will close it. Otherwise emit the gate and let the next scan, at the
+// same position, handle the `{` normally.
+static bool parse_block_attribute_section_check(Scanner *s, TSLexer *lexer,
+                                                const bool *valid_symbols) {
+  if (s->section_checked) {
+    s->section_checked = 0;
+    return false;
+  }
+  Block *top = peek_block(s);
+  if (!valid_symbols[BLOCK_ATTRIBUTE_SECTION_CHECK] ||
+      !valid_symbols[BLOCK_CLOSE] || !top || top->type != SECTION ||
+      s->open_inline.size > 0) {
+    return false;
+  }
+  if (block_attributes_precede_closing_heading(s, lexer, top->data)) {
+    remove_block(s);
+    lexer->result_symbol = BLOCK_CLOSE;
+    return true;
+  }
+  s->section_checked = 1;
+  lexer->result_symbol = BLOCK_ATTRIBUTE_SECTION_CHECK;
+  return true;
 }
 
 static bool parse_hard_line_break(Scanner *s, TSLexer *lexer) {
@@ -3648,6 +3718,9 @@ bool tree_sitter_djot_external_scanner_scan(void *payload, TSLexer *lexer,
     }
     break;
   case '{':
+    if (parse_block_attribute_section_check(s, lexer, valid_symbols)) {
+      return true;
+    }
     if (parse_open_curly_bracket(s, lexer, valid_symbols)) {
       return true;
     }
@@ -3754,6 +3827,7 @@ static void reset(Scanner *s) {
   s->block_quote_level = 0;
   s->indent = 0;
   s->state = 0;
+  s->section_checked = 0;
 }
 
 void *tree_sitter_djot_external_scanner_create() {
@@ -3779,6 +3853,7 @@ unsigned tree_sitter_djot_external_scanner_serialize(void *payload,
   buffer[size++] = (char)s->block_quote_level;
   buffer[size++] = (char)s->indent;
   buffer[size++] = (char)s->state;
+  buffer[size++] = (char)s->section_checked;
 
   buffer[size++] = (char)s->open_blocks.size;
   for (size_t i = 0; i < s->open_blocks.size; ++i) {
@@ -3806,6 +3881,7 @@ void tree_sitter_djot_external_scanner_deserialize(void *payload, char *buffer,
     s->block_quote_level = (uint8_t)buffer[size++];
     s->indent = (uint8_t)buffer[size++];
     s->state = (uint8_t)buffer[size++];
+    s->section_checked = (uint8_t)buffer[size++];
 
     uint8_t open_blocks = (uint8_t)buffer[size++];
     while (open_blocks-- > 0) {
@@ -3940,6 +4016,8 @@ static char *token_type_s(TokenType t) {
     return "TABLE_CAPTION_BEGIN";
   case TABLE_CAPTION_END:
     return "TABLE_CAPTION_END";
+  case BLOCK_ATTRIBUTE_SECTION_CHECK:
+    return "BLOCK_ATTRIBUTE_SECTION_CHECK";
   case BLOCK_ATTRIBUTE_BEGIN:
     return "BLOCK_ATTRIBUTE_BEGIN";
   case COMMENT_END_MARKER:

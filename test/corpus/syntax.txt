@@ -1176,10 +1176,148 @@ Block attribute: before heading
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (identifier)))
   (section
+    (block_attribute
+      (args
+        (identifier)))
+    (heading
+      (marker)
+      (content))))
+
+===============================================================================
+Block attribute: before heading closing a section
+===============================================================================
+# One
+
+text
+
+{.user}
+# Two
+
+-------------------------------------------------------------------------------
+
+(document
+  (section
+    (heading
+      (marker)
+      (content))
+    (section_content
+      (paragraph)))
+  (section
+    (block_attribute
+      (args
+        (class)))
+    (heading
+      (marker)
+      (content))))
+
+===============================================================================
+Block attribute: before heading closing nested sections
+===============================================================================
+# One
+
+## Sub
+
+{#a}
+{.b}
+# Two
+
+-------------------------------------------------------------------------------
+
+(document
+  (section
+    (heading
+      (marker)
+      (content))
+    (section_content
+      (section
+        (heading
+          (marker)
+          (content))
+        (section_content))))
+  (section
+    (block_attribute
+      (args
+        (identifier)))
+    (block_attribute
+      (args
+        (class)))
+    (heading
+      (marker)
+      (content))))
+
+===============================================================================
+Block attribute: before subsection heading
+===============================================================================
+# One
+
+{.x}
+## Sub
+
+-------------------------------------------------------------------------------
+
+(document
+  (section
+    (heading
+      (marker)
+      (content))
+    (section_content
+      (section
+        (block_attribute
+          (args
+            (class)))
+        (heading
+          (marker)
+          (content))))))
+
+===============================================================================
+Block attribute: before text in section
+===============================================================================
+# One
+
+{.x}
+text
+
+-------------------------------------------------------------------------------
+
+(document
+  (section
+    (heading
+      (marker)
+      (content))
+    (section_content
+      (block_attribute
+        (args
+          (class)))
+      (paragraph))))
+
+===============================================================================
+Block attribute: after list before heading closing a section
+===============================================================================
+# One
+
+- item
+
+{.x}
+# Two
+
+-------------------------------------------------------------------------------
+
+(document
+  (section
+    (heading
+      (marker)
+      (content))
+    (section_content
+      (list
+        (list_item
+          (list_marker_dash)
+          (list_item_content
+            (paragraph))))))
+  (section
+    (block_attribute
+      (args
+        (class)))
     (heading
       (marker)
       (content))))
@@ -1493,11 +1631,11 @@ Block attribute: comment before heading
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (comment
-        (content))))
   (section
+    (block_attribute
+      (args
+        (comment
+          (content))))
     (heading
       (marker)
       (content))))

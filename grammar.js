@@ -6,6 +6,7 @@ module.exports = grammar({
   extras: (_) => ["\r"],
 
   conflicts: ($) => [
+    [$._block_element, $.section],
     [$.emphasis_begin, $._symbol_fallback],
     [$.strong_begin, $._symbol_fallback],
     [$.superscript_begin, $._symbol_fallback],
@@ -38,7 +39,13 @@ module.exports = grammar({
 
     // A section is only valid on the top level, or nested inside other sections.
     // Otherwise standalone headings are used (inside divs for example).
-    _block_with_section: ($) => choice($.section, $._block_element, $._newline),
+    _block_with_section: ($) =>
+      choice(
+        $.section,
+        $._block_element,
+        $._newline,
+        $._block_attribute_section_check,
+      ),
     _block_with_heading: ($) =>
       seq(
         optional($._block_quote_continuation),
@@ -63,6 +70,8 @@ module.exports = grammar({
     // Section should end by a new header with the same or fewer amount of '#'.
     section: ($) =>
       seq(
+        // Attributes before the heading belong to the section.
+        repeat($.block_attribute),
         field("heading", $.heading),
         field(
           "content",
@@ -982,6 +991,9 @@ module.exports = grammar({
     $._table_caption_end,
     // The `{` that begins a block attribute (scans the entire attribute to avoid
     // excessive branching).
+    // Zero-width gate at a `{` in a section; closes the section instead when
+    // the attributes are followed by a heading that closes it.
+    $._block_attribute_section_check,
     $._block_attribute_begin,
     // A comment can be closed by a `%` or implicitly when the attribute closes at `}`.
     $._comment_end_marker,
