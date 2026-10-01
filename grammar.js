@@ -6,7 +6,7 @@ module.exports = grammar({
   extras: (_) => ["\r"],
 
   conflicts: ($) => [
-    [$._block_element, $.section],
+    [$._block_element, $._block_attributes],
     [$.emphasis_begin, $._symbol_fallback],
     [$.strong_begin, $._symbol_fallback],
     [$.superscript_begin, $._symbol_fallback],
@@ -49,7 +49,12 @@ module.exports = grammar({
     _block_with_heading: ($) =>
       seq(
         optional($._block_quote_continuation),
-        choice($.heading, $._block_element, $._newline),
+        choice(
+          $.heading,
+          alias($._attributed_heading, $.heading),
+          $._block_element,
+          $._newline,
+        ),
       ),
     _block_element: ($) =>
       choice(
@@ -71,7 +76,7 @@ module.exports = grammar({
     section: ($) =>
       seq(
         // Attributes before the heading belong to the section.
-        repeat($.block_attribute),
+        optional($._block_attributes),
         field("heading", $.heading),
         field(
           "content",
@@ -82,7 +87,10 @@ module.exports = grammar({
 
     // The external scanner allows for an arbitrary number of `#`
     // that can be continued on the next line.
-    heading: ($) =>
+    heading: ($) => $._heading,
+    // A heading outside a section (in a div for example) owns its attributes.
+    _attributed_heading: ($) => seq($._block_attributes, $._heading),
+    _heading: ($) =>
       seq(
         field("marker", alias($._heading_begin, $.marker)),
         field("content", alias($._heading_content, $.content)),
@@ -99,7 +107,13 @@ module.exports = grammar({
         $._eof_or_newline,
       ),
 
-    list: ($) => prec.left(choice($._list, $._list_definition)),
+    list: ($) =>
+      prec.left(
+        seq(
+          optional($._block_attributes),
+          choice($._list, $._list_definition),
+        ),
+      ),
 
     _list: ($) =>
       seq(repeat1(alias($._list_item, $.list_item)), $._block_close),
@@ -188,6 +202,7 @@ module.exports = grammar({
     table: ($) =>
       prec.right(
         seq(
+          optional($._block_attributes),
           repeat1($._table_row),
           optional($._newline),
           optional($.table_caption),
@@ -237,6 +252,7 @@ module.exports = grammar({
 
     footnote: ($) =>
       seq(
+        optional($._block_attributes),
         $._footnote_mark_begin,
         $.footnote_marker_begin,
         field("label", $.reference_label),
@@ -263,6 +279,7 @@ module.exports = grammar({
 
     div: ($) =>
       seq(
+        optional($._block_attributes),
         $._div_marker_begin,
         $._newline,
         field("content", alias(repeat($._block_with_heading), $.content)),
@@ -280,6 +297,7 @@ module.exports = grammar({
 
     code_block: ($) =>
       seq(
+        optional($._block_attributes),
         alias($._code_block_begin, $.code_block_marker_begin),
         $._whitespace,
         optional(field("language", $.language)),
@@ -292,6 +310,7 @@ module.exports = grammar({
       ),
     raw_block: ($) =>
       seq(
+        optional($._block_attributes),
         alias($._code_block_begin, $.raw_block_marker_begin),
         $._whitespace,
         field("info", $.raw_block_info),
@@ -314,17 +333,26 @@ module.exports = grammar({
     _line: ($) => seq(/[^\n]*/, $._newline),
 
     thematic_break: ($) =>
-      seq(choice($._thematic_break_dash, $._thematic_break_star), $._newline),
+      seq(
+        optional($._block_attributes),
+        choice($._thematic_break_dash, $._thematic_break_star),
+        $._newline,
+      ),
 
     block_quote: ($) =>
       seq(
+        optional($._block_attributes),
         alias($._block_quote_begin, $.block_quote_marker),
         field("content", alias($._block_quote_content, $.content)),
         $._block_close,
       ),
     _block_quote_content: ($) =>
       seq(
-        choice($.heading, $._block_element),
+        choice(
+          $.heading,
+          alias($._attributed_heading, $.heading),
+          $._block_element,
+        ),
         repeat(
           choice(
             seq($._block_quote_prefix, optional($._block_element)),
@@ -341,6 +369,7 @@ module.exports = grammar({
 
     block_math: ($) =>
       seq(
+        optional($._block_attributes),
         field("math_marker", alias("$$", $.math_marker)),
         field("begin_marker", alias($._verbatim_begin, $.math_marker_begin)),
         field("content", alias($._verbatim_content, $.content)),
@@ -350,6 +379,7 @@ module.exports = grammar({
 
     link_reference_definition: ($) =>
       seq(
+        optional($._block_attributes),
         $._link_ref_def_mark_begin,
         "[",
         field("label", alias($._inline, $.link_label)),
@@ -361,6 +391,22 @@ module.exports = grammar({
       ),
     link_destination: (_) => /\S+/,
 
+    // Attributes directly before a block belong to it. Without a following
+    // block, they're standalone; the dynamic precedence prefers grouping.
+    _block_attributes: ($) =>
+      prec.dynamic(
+        1,
+        repeat1(
+          seq(
+            $.block_attribute,
+            optional(
+              repeat1(
+                alias($._block_attribute_quote_prefix, $.block_quote_marker),
+              ),
+            ),
+          ),
+        ),
+      ),
     block_attribute: ($) =>
       seq(
         alias($._block_attribute_begin, "{"),
@@ -402,15 +448,21 @@ module.exports = grammar({
     // token can be emitted which closes the paragraph content.
     _paragraph: ($) =>
       seq(
-        alias($._paragraph_content, $.paragraph),
+        alias($._attributed_paragraph, $.paragraph),
         // Blankline is split out from paragraph to enable textobject
         // to not select newline up to following text.
         choice($._eof_or_newline, $._close_paragraph),
       ),
+    _attributed_paragraph: ($) =>
+      choice(
+        $._paragraph_content,
+        seq($._block_attributes, $._paragraph_body),
+      ),
     _paragraph_content: ($) =>
+      seq(optional($._block_quote_prefix), $._paragraph_body),
+    _paragraph_body: ($) =>
       // Newlines inside inline blocks should be of the `_newline_inline` type.
       seq(
-        optional($._block_quote_prefix),
         $._inline,
         repeat(
           seq($._newline_inline, optional($._block_quote_prefix), $._inline),
@@ -1003,6 +1055,8 @@ module.exports = grammar({
     // Zero-width bridge attaching a block attribute's trailing same-line content
     // to an open block quote (`> {.c} more`).
     $._block_attribute_quote_continuation,
+    // A non-blank `> ` continuation directly after a block attribute.
+    $._block_attribute_quote_prefix,
 
     // Inline elements.
 

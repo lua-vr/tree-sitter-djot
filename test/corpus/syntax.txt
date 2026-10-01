@@ -1067,10 +1067,10 @@ Paragraph
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (class)))
-  (paragraph))
+  (paragraph
+    (block_attribute
+      (args
+        (class)))))
 
 ===============================================================================
 Block attribute: spaces
@@ -1081,10 +1081,10 @@ Paragraph
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (class)))
-  (paragraph))
+  (paragraph
+    (block_attribute
+      (args
+        (class)))))
 
 ===============================================================================
 Block attribute: identifier
@@ -1095,10 +1095,10 @@ Paragraph
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (identifier)))
-  (paragraph))
+  (paragraph
+    (block_attribute
+      (args
+        (identifier)))))
 
 ===============================================================================
 Block attribute: key value
@@ -1109,12 +1109,12 @@ Paragraph
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (key_value
-        (key)
-        (value))))
-  (paragraph))
+  (paragraph
+    (block_attribute
+      (args
+        (key_value
+          (key)
+          (value))))))
 
 ===============================================================================
 Block attribute: key value spaces
@@ -1125,12 +1125,12 @@ Paragraph
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (key_value
-        (key)
-        (value))))
-  (paragraph))
+  (paragraph
+    (block_attribute
+      (args
+        (key_value
+          (key)
+          (value))))))
 
 ===============================================================================
 Block attribute: mixed
@@ -1141,15 +1141,15 @@ Paragraph
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (class)
-      (class)
-      (identifier)
-      (key_value
-        (key)
-        (value))))
-  (paragraph))
+  (paragraph
+    (block_attribute
+      (args
+        (class)
+        (class)
+        (identifier)
+        (key_value
+          (key)
+          (value))))))
 
 ===============================================================================
 Block attribute: with comment
@@ -1160,12 +1160,12 @@ Paragraph
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (identifier)
-      (comment
-        (content))))
-  (paragraph))
+  (paragraph
+    (block_attribute
+      (args
+        (identifier)
+        (comment
+          (content))))))
 
 ===============================================================================
 Block attribute: before heading
@@ -1286,10 +1286,10 @@ text
       (marker)
       (content))
     (section_content
-      (block_attribute
-        (args
-          (class)))
-      (paragraph))))
+      (paragraph
+        (block_attribute
+          (args
+            (class)))))))
 
 ===============================================================================
 Block attribute: after list before heading closing a section
@@ -1323,6 +1323,156 @@ Block attribute: after list before heading closing a section
       (content))))
 
 ===============================================================================
+Block attribute: grouped in block quote
+===============================================================================
+> {.a}
+> {.b}
+> text
+
+-------------------------------------------------------------------------------
+
+(document
+  (block_quote
+    (block_quote_marker)
+    (content
+      (paragraph
+        (block_attribute
+          (args
+            (class)))
+        (block_quote_marker)
+        (block_attribute
+          (args
+            (class)))
+        (block_quote_marker)))))
+
+===============================================================================
+Block attribute: blank quote line keeps it standalone
+===============================================================================
+> {.a}
+>
+> text
+
+-------------------------------------------------------------------------------
+
+(document
+  (block_quote
+    (block_quote_marker)
+    (content
+      (block_attribute
+        (args
+          (class)))
+      (block_quote_marker)
+      (block_quote_marker)
+      (paragraph))))
+
+===============================================================================
+Block attribute: before code block in block quote
+===============================================================================
+> {.c}
+> ```
+> x
+> ```
+
+-------------------------------------------------------------------------------
+
+(document
+  (block_quote
+    (block_quote_marker)
+    (content
+      (code_block
+        (block_attribute
+          (args
+            (class)))
+        (block_quote_marker)
+        (code_block_marker_begin)
+        (code
+          (block_quote_marker)
+          (block_quote_marker))))))
+
+===============================================================================
+Block attribute: followed by blank line is standalone
+===============================================================================
+{.a}
+
+text
+
+-------------------------------------------------------------------------------
+
+(document
+  (block_attribute
+    (args
+      (class)))
+  (paragraph))
+
+===============================================================================
+Block attribute: before heading in div
+===============================================================================
+::: d
+{.h}
+# Head
+:::
+
+-------------------------------------------------------------------------------
+
+(document
+  (div
+    (div_marker_begin)
+    (class_name)
+    (content
+      (heading
+        (block_attribute
+          (args
+            (class)))
+        (marker)
+        (content)))
+    (div_marker_end)))
+
+===============================================================================
+Block attribute: before math, raw block and footnote
+===============================================================================
+{.m}
+$$`x`
+
+{.r}
+```=html
+<b>
+```
+
+{.f}
+[^n]: note
+
+-------------------------------------------------------------------------------
+
+(document
+  (paragraph
+    (block_attribute
+      (args
+        (class)))
+    (verbatim
+      (verbatim_marker_begin)
+      (content)
+      (verbatim_marker_end)))
+  (raw_block
+    (block_attribute
+      (args
+        (class)))
+    (raw_block_marker_begin)
+    (raw_block_info
+      (language_marker)
+      (language))
+    (content)
+    (raw_block_marker_end))
+  (footnote
+    (block_attribute
+      (args
+        (class)))
+    (footnote_marker_begin)
+    (reference_label)
+    (footnote_marker_end)
+    (footnote_content
+      (paragraph))))
+
+===============================================================================
 Block attribute: before table
 ===============================================================================
 {#id}
@@ -1331,10 +1481,10 @@ Block attribute: before table
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (identifier)))
   (table
+    (block_attribute
+      (args
+        (identifier)))
     (table_row
       (table_cell)
       (table_cell))))
@@ -1348,10 +1498,10 @@ Block attribute: before list
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (identifier)))
   (list
+    (block_attribute
+      (args
+        (identifier)))
     (list_item
       (list_marker_decimal_period)
       (list_item_content
@@ -1366,10 +1516,10 @@ Block attribute: before blockquote
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (identifier)))
   (block_quote
+    (block_attribute
+      (args
+        (identifier)))
     (block_quote_marker)
     (content
       (paragraph))))
@@ -1385,10 +1535,10 @@ ok
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (identifier)))
   (div
+    (block_attribute
+      (args
+        (identifier)))
     (div_marker_begin)
     (class_name)
     (content
@@ -1406,10 +1556,10 @@ let x = 2;
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (identifier)))
   (code_block
+    (block_attribute
+      (args
+        (identifier)))
     (code_block_marker_begin)
     (language)
     (code)
@@ -1424,10 +1574,10 @@ Block attribute: before link def
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (identifier)))
   (link_reference_definition
+    (block_attribute
+      (args
+        (identifier)))
     (link_label)
     (link_destination)))
 
@@ -1440,10 +1590,10 @@ Block attribute: before thematic break
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (identifier)))
-  (thematic_break))
+  (thematic_break
+    (block_attribute
+      (args
+        (identifier)))))
 
 ===============================================================================
 Block attribute: inside list
@@ -1482,11 +1632,11 @@ Block attribute: inside block quote
       (paragraph)
       (block_quote_marker)
       (block_quote_marker)
-      (block_attribute
-        (args
-          (class)))
-      (block_quote_marker)
-      (paragraph))))
+      (paragraph
+        (block_attribute
+          (args
+            (class)))
+        (block_quote_marker)))))
 
 ===============================================================================
 Block attribute: must be first
@@ -1614,11 +1764,11 @@ Block attribute: comment before link def
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (comment
-        (content))))
   (link_reference_definition
+    (block_attribute
+      (args
+        (comment
+          (content))))
     (link_label)
     (link_destination)))
 
@@ -1648,10 +1798,10 @@ Block attribute: trailing text on same line
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (class)))
-  (paragraph))
+  (paragraph
+    (block_attribute
+      (args
+        (class)))))
 
 ===============================================================================
 Block attribute: trailing text immediately after
@@ -1661,10 +1811,10 @@ Block attribute: trailing text immediately after
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (class)))
-  (paragraph))
+  (paragraph
+    (block_attribute
+      (args
+        (class)))))
 
 ===============================================================================
 Block attribute: trailing whitespace then text on same line
@@ -1674,10 +1824,10 @@ Block attribute: trailing whitespace then text on same line
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (class)))
-  (paragraph))
+  (paragraph
+    (block_attribute
+      (args
+        (class)))))
 
 ===============================================================================
 Block attribute: blank rest of line attaches to next block
@@ -1688,10 +1838,10 @@ more
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (class)))
-  (paragraph))
+  (paragraph
+    (block_attribute
+      (args
+        (class)))))
 
 ===============================================================================
 Block attribute: consecutive attributes then text
@@ -1701,13 +1851,13 @@ Block attribute: consecutive attributes then text
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (identifier)))
-  (block_attribute
-    (args
-      (class)))
-  (paragraph))
+  (paragraph
+    (block_attribute
+      (args
+        (identifier)))
+    (block_attribute
+      (args
+        (class)))))
 
 ===============================================================================
 Block attribute: comment with trailing text on same line
@@ -1717,11 +1867,11 @@ Block attribute: comment with trailing text on same line
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (comment
-        (content))))
-  (paragraph))
+  (paragraph
+    (block_attribute
+      (args
+        (comment
+          (content))))))
 
 ===============================================================================
 Block attribute: comment closed early by nested bracket
@@ -1731,11 +1881,11 @@ Block attribute: comment closed early by nested bracket
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (comment
-        (content))))
-  (paragraph))
+  (paragraph
+    (block_attribute
+      (args
+        (comment
+          (content))))))
 
 ===============================================================================
 Block attribute: trailing text inside list item
@@ -3695,18 +3845,18 @@ List: Nested divs with block attributes
       (list_marker_dash)
       (list_item_content
         (paragraph)
-        (block_attribute
-          (args
-            (identifier)))
         (div
+          (block_attribute
+            (args
+              (identifier)))
           (div_marker_begin)
           (content
             (paragraph))
           (div_marker_end))
-        (block_attribute
-          (args
-            (identifier)))
         (div
+          (block_attribute
+            (args
+              (identifier)))
           (div_marker_begin)
           (content
             (paragraph))
@@ -4338,18 +4488,18 @@ Footnote: Nested divs with block attributes
     (footnote_marker_end)
     (footnote_content
       (paragraph)
-      (block_attribute
-        (args
-          (identifier)))
       (div
+        (block_attribute
+          (args
+            (identifier)))
         (div_marker_begin)
         (content
           (paragraph))
         (div_marker_end))
-      (block_attribute
-        (args
-          (identifier)))
       (div
+        (block_attribute
+          (args
+            (identifier)))
         (div_marker_begin)
         (content
           (paragraph))

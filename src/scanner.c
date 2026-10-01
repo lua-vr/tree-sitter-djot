@@ -77,6 +77,7 @@ typedef enum {
   COMMENT_CLOSE,
   BLOCK_ATTRIBUTE_END,
   BLOCK_ATTRIBUTE_QUOTE_CONTINUATION,
+  BLOCK_ATTRIBUTE_QUOTE_PREFIX,
 
   INLINE_COMMENT_BEGIN,
 
@@ -1061,6 +1062,14 @@ static bool parse_block_quote(Scanner *s, TSLexer *lexer,
       lexer->mark_end(lexer);
       s->block_quote_level = ending_newline ? 0 : marker_count;
       lexer->result_symbol = TABLE_CONTINUES;
+      return true;
+    }
+    // After a block attribute, a non-blank `> ` keeps the attributes grouped
+    // with the next block; a blank `>` line leaves them standalone.
+    if (valid_symbols[BLOCK_ATTRIBUTE_QUOTE_PREFIX] && !ending_newline) {
+      lexer->mark_end(lexer);
+      output_block_quote_continuation(s, lexer, marker_count, ending_newline);
+      lexer->result_symbol = BLOCK_ATTRIBUTE_QUOTE_PREFIX;
       return true;
     }
     if (valid_symbols[BLOCK_QUOTE_CONTINUATION]) {
@@ -4028,6 +4037,8 @@ static char *token_type_s(TokenType t) {
     return "BLOCK_ATTRIBUTE_END";
   case BLOCK_ATTRIBUTE_QUOTE_CONTINUATION:
     return "BLOCK_ATTRIBUTE_QUOTE_CONTINUATION";
+  case BLOCK_ATTRIBUTE_QUOTE_PREFIX:
+    return "BLOCK_ATTRIBUTE_QUOTE_PREFIX";
 
   case VERBATIM_BEGIN:
     return "VERBATIM_BEGIN";

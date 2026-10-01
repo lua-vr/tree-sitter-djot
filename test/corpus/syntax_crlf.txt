@@ -195,12 +195,12 @@ Paragraph
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (key_value
-        (key)
-        (value))))
-  (paragraph))
+  (paragraph
+    (block_attribute
+      (args
+        (key_value
+          (key)
+          (value))))))
 
 ===============================================================================
 Inline attribute: with newlines
@@ -375,8 +375,7 @@ Block attribute: trailing text on same line
 -------------------------------------------------------------------------------
 
 (document
-  (block_attribute
-    (args
-      (class)))
-  (paragraph))
-
+  (paragraph
+    (block_attribute
+      (args
+        (class)))))
