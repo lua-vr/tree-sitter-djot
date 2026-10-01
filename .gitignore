@@ -1,5 +1,6 @@
 tmp/
 Cargo.lock
+.claude/
 node_modules
 .node-version
 build
@@ -9,3 +10,8 @@ build
 /target/
 log.html
 *.dj
+/m.md
+*.so
+*.o
+*.pc
+*.a

@@ -63,9 +63,13 @@
       }
     },
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": true,
       "types": [
+        {
+          "type": "block_attribute",
+          "named": true
+        },
         {
           "type": "block_quote_marker",
           "named": true
@@ -132,6 +136,14 @@
       "multiple": true,
       "required": true,
       "types": [
+        {
+          "type": "block_attribute",
+          "named": true
+        },
+        {
+          "type": "block_quote_marker",
+          "named": true
+        },
         {
           "type": "code_block_marker_begin",
           "named": true
@@ -527,6 +539,10 @@
       "required": true,
       "types": [
         {
+          "type": "block_attribute",
+          "named": true
+        },
+        {
           "type": "block_quote_marker",
           "named": true
         },
@@ -679,6 +695,14 @@
       "multiple": true,
       "required": true,
       "types": [
+        {
+          "type": "block_attribute",
+          "named": true
+        },
+        {
+          "type": "block_quote_marker",
+          "named": true
+        },
         {
           "type": "footnote_marker_begin",
           "named": true
@@ -902,6 +926,20 @@
           }
         ]
       }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "block_attribute",
+          "named": true
+        },
+        {
+          "type": "block_quote_marker",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -1413,6 +1451,20 @@
           }
         ]
       }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "block_attribute",
+          "named": true
+        },
+        {
+          "type": "block_quote_marker",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -1565,6 +1617,14 @@
       "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "block_attribute",
+          "named": true
+        },
+        {
+          "type": "block_quote_marker",
+          "named": true
+        },
         {
           "type": "list_item",
           "named": true
@@ -1835,6 +1895,20 @@
           }
         ]
       }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "block_attribute",
+          "named": true
+        },
+        {
+          "type": "block_quote_marker",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -1867,6 +1941,10 @@
         },
         {
           "type": "backslash_escape",
+          "named": true
+        },
+        {
+          "type": "block_attribute",
           "named": true
         },
         {
@@ -2018,6 +2096,14 @@
       "required": true,
       "types": [
         {
+          "type": "block_attribute",
+          "named": true
+        },
+        {
+          "type": "block_quote_marker",
+          "named": true
+        },
+        {
           "type": "raw_block_marker_begin",
           "named": true
         },
@@ -2145,6 +2231,20 @@
           }
         ]
       }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "block_attribute",
+          "named": true
+        },
+        {
+          "type": "block_quote_marker",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -2367,6 +2467,10 @@
       "multiple": true,
       "required": true,
       "types": [
+        {
+          "type": "block_attribute",
+          "named": true
+        },
         {
           "type": "block_quote_marker",
           "named": true
@@ -2752,7 +2856,21 @@
   {
     "type": "thematic_break",
     "named": true,
-    "fields": {}
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "block_attribute",
+          "named": true
+        },
+        {
+          "type": "block_quote_marker",
+          "named": true
+        }
+      ]
+    }
   },
   {
     "type": "todo",
@@ -2815,10 +2933,6 @@
   },
   {
     "type": "![",
-    "named": false
-  },
-  {
-    "type": "\"",
     "named": false
   },
   {

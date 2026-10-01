@@ -6,6 +6,7 @@ module.exports = grammar({
   extras: (_) => ["\r"],
 
   conflicts: ($) => [
+    [$._block_element, $._block_attributes],
     [$.emphasis_begin, $._symbol_fallback],
     [$.strong_begin, $._symbol_fallback],
     [$.superscript_begin, $._symbol_fallback],
@@ -13,8 +14,6 @@ module.exports = grammar({
     [$.highlighted_begin, $._symbol_fallback],
     [$.insert_begin, $._symbol_fallback],
     [$.delete_begin, $._symbol_fallback],
-    [$._bracketed_text_begin, $._symbol_fallback],
-    [$._image_description_begin, $._symbol_fallback],
     [$.footnote_marker_begin, $._symbol_fallback],
     [$.block_math, $._symbol_fallback],
     [$.inline_math, $._symbol_fallback],
@@ -40,11 +39,22 @@ module.exports = grammar({
 
     // A section is only valid on the top level, or nested inside other sections.
     // Otherwise standalone headings are used (inside divs for example).
-    _block_with_section: ($) => choice($.section, $._block_element, $._newline),
+    _block_with_section: ($) =>
+      choice(
+        $.section,
+        $._block_element,
+        $._newline,
+        $._block_attribute_section_check,
+      ),
     _block_with_heading: ($) =>
       seq(
         optional($._block_quote_continuation),
-        choice($.heading, $._block_element, $._newline),
+        choice(
+          $.heading,
+          alias($._attributed_heading, $.heading),
+          $._block_element,
+          $._newline,
+        ),
       ),
     _block_element: ($) =>
       choice(
@@ -65,6 +75,8 @@ module.exports = grammar({
     // Section should end by a new header with the same or fewer amount of '#'.
     section: ($) =>
       seq(
+        // Attributes before the heading belong to the section.
+        optional($._block_attributes),
         field("heading", $.heading),
         field(
           "content",
@@ -75,7 +87,10 @@ module.exports = grammar({
 
     // The external scanner allows for an arbitrary number of `#`
     // that can be continued on the next line.
-    heading: ($) =>
+    heading: ($) => $._heading,
+    // A heading outside a section (in a div for example) owns its attributes.
+    _attributed_heading: ($) => seq($._block_attributes, $._heading),
+    _heading: ($) =>
       seq(
         field("marker", alias($._heading_begin, $.marker)),
         field("content", alias($._heading_content, $.content)),
@@ -83,73 +98,56 @@ module.exports = grammar({
         optional($._eof_or_newline),
       ),
     _heading_content: ($) =>
-      seq(
-        $._inline_line,
-        repeat(seq(alias($._heading_continuation, $.marker), $._inline_line)),
+      choice(
+        seq(
+          $._inline_line,
+          repeat(seq(alias($._heading_continuation, $.marker), $._inline_line)),
+        ),
+        // Allow an empty heading
+        $._eof_or_newline,
       ),
 
-    // Djot has a crazy number of different list types
-    // that we need to keep separate from each other.
     list: ($) =>
       prec.left(
-        choice(
-          $._list_dash,
-          $._list_plus,
-          $._list_star,
-          $._list_task,
-          $._list_definition,
-          $._list_decimal_period,
-          $._list_decimal_paren,
-          $._list_decimal_parens,
-          $._list_lower_alpha_period,
-          $._list_lower_alpha_paren,
-          $._list_lower_alpha_parens,
-          $._list_upper_alpha_period,
-          $._list_upper_alpha_paren,
-          $._list_upper_alpha_parens,
-          $._list_lower_roman_period,
-          $._list_lower_roman_paren,
-          $._list_lower_roman_parens,
-          $._list_upper_roman_period,
-          $._list_upper_roman_paren,
-          $._list_upper_roman_parens,
+        seq(
+          optional($._block_attributes),
+          choice($._list, $._list_definition),
         ),
       ),
-    _list_dash: ($) =>
-      seq(repeat1(alias($._list_item_dash, $.list_item)), $._block_close),
-    _list_item_dash: ($) =>
+
+    _list: ($) =>
+      seq(repeat1(alias($._list_item, $.list_item)), $._block_close),
+
+    _list_item: ($) =>
       seq(
         optional($._block_quote_prefix),
-        field("marker", $.list_marker_dash),
+        field(
+          "marker",
+          choice(
+            $.list_marker_dash,
+            $.list_marker_plus,
+            $.list_marker_star,
+            $.list_marker_task,
+            $.list_marker_decimal_period,
+            $.list_marker_decimal_paren,
+            $.list_marker_decimal_parens,
+            $.list_marker_lower_alpha_period,
+            $.list_marker_lower_alpha_paren,
+            $.list_marker_lower_alpha_parens,
+            $.list_marker_upper_alpha_period,
+            $.list_marker_upper_alpha_paren,
+            $.list_marker_upper_alpha_parens,
+            $.list_marker_lower_roman_period,
+            $.list_marker_lower_roman_paren,
+            $.list_marker_lower_roman_parens,
+            $.list_marker_upper_roman_period,
+            $.list_marker_upper_roman_paren,
+            $.list_marker_upper_roman_parens,
+          ),
+        ),
         field("content", $.list_item_content),
       ),
 
-    _list_plus: ($) =>
-      seq(repeat1(alias($._list_item_plus, $.list_item)), $._block_close),
-    _list_item_plus: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_plus),
-        field("content", $.list_item_content),
-      ),
-
-    _list_star: ($) =>
-      seq(repeat1(alias($._list_item_star, $.list_item)), $._block_close),
-    _list_item_star: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_star),
-        field("content", $.list_item_content),
-      ),
-
-    _list_task: ($) =>
-      seq(repeat1(alias($._list_item_task, $.list_item)), $._block_close),
-    _list_item_task: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_task),
-        field("content", $.list_item_content),
-      ),
     list_marker_task: ($) =>
       seq(
         $._list_marker_task_begin,
@@ -184,176 +182,6 @@ module.exports = grammar({
         $._list_item_end,
       ),
 
-    _list_decimal_period: ($) =>
-      seq(
-        repeat1(alias($._list_item_decimal_period, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_decimal_period: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_decimal_period),
-        field("content", $.list_item_content),
-      ),
-    _list_decimal_paren: ($) =>
-      seq(
-        repeat1(alias($._list_item_decimal_paren, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_decimal_paren: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_decimal_paren),
-        field("content", $.list_item_content),
-      ),
-    _list_decimal_parens: ($) =>
-      seq(
-        repeat1(alias($._list_item_decimal_parens, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_decimal_parens: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_decimal_parens),
-        field("content", $.list_item_content),
-      ),
-
-    _list_lower_alpha_period: ($) =>
-      seq(
-        repeat1(alias($._list_item_lower_alpha_period, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_lower_alpha_period: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_lower_alpha_period),
-        field("content", $.list_item_content),
-      ),
-    _list_lower_alpha_paren: ($) =>
-      seq(
-        repeat1(alias($._list_item_lower_alpha_paren, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_lower_alpha_paren: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_lower_alpha_paren),
-        field("content", $.list_item_content),
-      ),
-    _list_lower_alpha_parens: ($) =>
-      seq(
-        repeat1(alias($._list_item_lower_alpha_parens, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_lower_alpha_parens: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_lower_alpha_parens),
-        field("content", $.list_item_content),
-      ),
-
-    _list_upper_alpha_period: ($) =>
-      seq(
-        repeat1(alias($._list_item_upper_alpha_period, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_upper_alpha_period: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_upper_alpha_period),
-        field("content", $.list_item_content),
-      ),
-    _list_upper_alpha_paren: ($) =>
-      seq(
-        repeat1(alias($._list_item_upper_alpha_paren, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_upper_alpha_paren: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_upper_alpha_paren),
-        field("content", $.list_item_content),
-      ),
-    _list_upper_alpha_parens: ($) =>
-      seq(
-        repeat1(alias($._list_item_upper_alpha_parens, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_upper_alpha_parens: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_upper_alpha_parens),
-        field("content", $.list_item_content),
-      ),
-
-    _list_lower_roman_period: ($) =>
-      seq(
-        repeat1(alias($._list_item_lower_roman_period, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_lower_roman_period: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_lower_roman_period),
-        field("content", $.list_item_content),
-      ),
-    _list_lower_roman_paren: ($) =>
-      seq(
-        repeat1(alias($._list_item_lower_roman_paren, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_lower_roman_paren: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_lower_roman_paren),
-        field("content", $.list_item_content),
-      ),
-    _list_lower_roman_parens: ($) =>
-      seq(
-        repeat1(alias($._list_item_lower_roman_parens, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_lower_roman_parens: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_lower_roman_parens),
-        field("content", $.list_item_content),
-      ),
-
-    _list_upper_roman_period: ($) =>
-      seq(
-        repeat1(alias($._list_item_upper_roman_period, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_upper_roman_period: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_upper_roman_period),
-        field("content", $.list_item_content),
-      ),
-    _list_upper_roman_paren: ($) =>
-      seq(
-        repeat1(alias($._list_item_upper_roman_paren, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_upper_roman_paren: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_upper_roman_paren),
-        field("content", $.list_item_content),
-      ),
-    _list_upper_roman_parens: ($) =>
-      seq(
-        repeat1(alias($._list_item_upper_roman_parens, $.list_item)),
-        $._block_close,
-      ),
-    _list_item_upper_roman_parens: ($) =>
-      seq(
-        optional($._block_quote_prefix),
-        field("marker", $.list_marker_upper_roman_parens),
-        field("content", $.list_item_content),
-      ),
-
     list_item_content: ($) =>
       seq(
         $._block_with_heading,
@@ -374,6 +202,7 @@ module.exports = grammar({
     table: ($) =>
       prec.right(
         seq(
+          optional($._block_attributes),
           repeat1($._table_row),
           optional($._newline),
           optional($.table_caption),
@@ -381,7 +210,9 @@ module.exports = grammar({
       ),
     _table_row: ($) =>
       seq(
-        optional($._block_quote_prefix),
+        optional(
+          repeat1(alias($._table_continues, $.block_quote_marker)),
+        ),
         choice($.table_header, $.table_separator, $.table_row),
       ),
     table_header: ($) =>
@@ -421,6 +252,7 @@ module.exports = grammar({
 
     footnote: ($) =>
       seq(
+        optional($._block_attributes),
         $._footnote_mark_begin,
         $.footnote_marker_begin,
         field("label", $.reference_label),
@@ -447,6 +279,7 @@ module.exports = grammar({
 
     div: ($) =>
       seq(
+        optional($._block_attributes),
         $._div_marker_begin,
         $._newline,
         field("content", alias(repeat($._block_with_heading), $.content)),
@@ -456,6 +289,7 @@ module.exports = grammar({
       ),
     _div_marker_begin: ($) =>
       seq(
+        $._div_opener_check,
         alias($._div_begin, $.div_marker_begin),
         optional(seq($._whitespace1, field("class", $.class_name))),
       ),
@@ -463,6 +297,7 @@ module.exports = grammar({
 
     code_block: ($) =>
       seq(
+        optional($._block_attributes),
         alias($._code_block_begin, $.code_block_marker_begin),
         $._whitespace,
         optional(field("language", $.language)),
@@ -475,6 +310,7 @@ module.exports = grammar({
       ),
     raw_block: ($) =>
       seq(
+        optional($._block_attributes),
         alias($._code_block_begin, $.raw_block_marker_begin),
         $._whitespace,
         field("info", $.raw_block_info),
@@ -497,18 +333,32 @@ module.exports = grammar({
     _line: ($) => seq(/[^\n]*/, $._newline),
 
     thematic_break: ($) =>
-      seq(choice($._thematic_break_dash, $._thematic_break_star), $._newline),
+      seq(
+        optional($._block_attributes),
+        choice($._thematic_break_dash, $._thematic_break_star),
+        $._newline,
+      ),
 
     block_quote: ($) =>
       seq(
+        optional($._block_attributes),
         alias($._block_quote_begin, $.block_quote_marker),
         field("content", alias($._block_quote_content, $.content)),
         $._block_close,
       ),
     _block_quote_content: ($) =>
       seq(
-        choice($.heading, $._block_element),
-        repeat(seq($._block_quote_prefix, optional($._block_element))),
+        choice(
+          $.heading,
+          alias($._attributed_heading, $.heading),
+          $._block_element,
+        ),
+        repeat(
+          choice(
+            seq($._block_quote_prefix, optional($._block_element)),
+            seq($._block_attribute_quote_continuation, $._block_element),
+          ),
+        ),
       ),
     _block_quote_prefix: ($) =>
       prec.left(
@@ -519,6 +369,7 @@ module.exports = grammar({
 
     block_math: ($) =>
       seq(
+        optional($._block_attributes),
         field("math_marker", alias("$$", $.math_marker)),
         field("begin_marker", alias($._verbatim_begin, $.math_marker_begin)),
         field("content", alias($._verbatim_content, $.content)),
@@ -528,6 +379,7 @@ module.exports = grammar({
 
     link_reference_definition: ($) =>
       seq(
+        optional($._block_attributes),
         $._link_ref_def_mark_begin,
         "[",
         field("label", alias($._inline, $.link_label)),
@@ -539,6 +391,22 @@ module.exports = grammar({
       ),
     link_destination: (_) => /\S+/,
 
+    // Attributes directly before a block belong to it. Without a following
+    // block, they're standalone; the dynamic precedence prefers grouping.
+    _block_attributes: ($) =>
+      prec.dynamic(
+        1,
+        repeat1(
+          seq(
+            $.block_attribute,
+            optional(
+              repeat1(
+                alias($._block_attribute_quote_prefix, $.block_quote_marker),
+              ),
+            ),
+          ),
+        ),
+      ),
     block_attribute: ($) =>
       seq(
         alias($._block_attribute_begin, "{"),
@@ -559,13 +427,13 @@ module.exports = grammar({
           ),
         ),
         "}",
-        $._newline,
+        $._block_attribute_end,
       ),
     class: ($) => seq(".", alias($.class_name, "class")),
     identifier: (_) => token(seq("#", token.immediate(/[^\s\}]+/))),
     key_value: ($) => seq(field("key", $.key), "=", field("value", $.value)),
     key: ($) => $._id,
-    value: (_) => choice(seq('"', /[^"\n]+/, '"'), /\w+/),
+    value: (_) => choice(/"([^"\\\r\n]|\\[^\r\n])*"/, /\w+/),
 
     // Paragraphs are a bit special parsing wise as it's the "fallback"
     // block, where everything that doesn't fit will go.
@@ -580,15 +448,21 @@ module.exports = grammar({
     // token can be emitted which closes the paragraph content.
     _paragraph: ($) =>
       seq(
-        alias($._paragraph_content, $.paragraph),
+        alias($._attributed_paragraph, $.paragraph),
         // Blankline is split out from paragraph to enable textobject
         // to not select newline up to following text.
         choice($._eof_or_newline, $._close_paragraph),
       ),
+    _attributed_paragraph: ($) =>
+      choice(
+        $._paragraph_content,
+        seq($._block_attributes, $._paragraph_body),
+      ),
     _paragraph_content: ($) =>
+      seq(optional($._block_quote_prefix), $._paragraph_body),
+    _paragraph_body: ($) =>
       // Newlines inside inline blocks should be of the `_newline_inline` type.
       seq(
-        optional($._block_quote_prefix),
         $._inline,
         repeat(
           seq($._newline_inline, optional($._block_quote_prefix), $._inline),
@@ -619,6 +493,8 @@ module.exports = grammar({
           // Span is declared separately because it always parses an `inline_attribute`,
           // while the attribute is optional for everything else.
           $.span,
+          // Parse standalone attributes (`text {.c}`) too.
+          $._standalone_inline_attribute,
           seq(
             choice(
               $._smart_punctuation,
@@ -725,19 +601,19 @@ module.exports = grammar({
       seq(
         field("begin_marker", $.superscript_begin),
         $._superscript_mark_begin,
-        field("content", alias($._inline, $.content)),
+        field("content", alias($._inline_without_trailing_space, $.content)),
         field("end_marker", $.superscript_end),
       ),
-    superscript_begin: (_) => choice("{^", "^"),
+    superscript_begin: ($) => choice("{^", seq("^", $._non_whitespace_check)),
 
     subscript: ($) =>
       seq(
         field("begin_marker", $.subscript_begin),
         $._subscript_mark_begin,
-        field("content", alias($._inline, $.content)),
+        field("content", alias($._inline_without_trailing_space, $.content)),
         field("end_marker", $.subscript_end),
       ),
-    subscript_begin: (_) => choice("{~", "~"),
+    subscript_begin: ($) => choice("{~", seq("~", $._non_whitespace_check)),
 
     highlighted: ($) =>
       seq(
@@ -795,6 +671,7 @@ module.exports = grammar({
     image_description: ($) =>
       seq(
         $._image_description_begin,
+        $._image_open_check,
         $._square_bracket_span_mark_begin,
         optional($._inline),
         alias($._square_bracket_span_end, "]"),
@@ -816,6 +693,7 @@ module.exports = grammar({
       choice(
         seq(
           $._bracketed_text_begin,
+          $._bracketed_text_open_check,
           $._square_bracket_span_mark_begin,
           $._inline,
           // Alias to "]" to allow us to highlight it in Neovim.
@@ -831,6 +709,7 @@ module.exports = grammar({
     span: ($) =>
       seq(
         $._bracketed_text_begin,
+        $._bracketed_text_open_check,
         $._square_bracket_span_mark_begin,
         field("content", alias($._inline, $.content)),
         // Prefer span over regular text + inline attribute.
@@ -842,6 +721,15 @@ module.exports = grammar({
       ),
 
     _bracketed_text_begin: (_) => "[",
+
+    _standalone_inline_attribute: ($) =>
+      seq(
+        $._whitespace1,
+        prec.dynamic(
+          2 * ELEMENT_PRECEDENCE,
+          field("attribute", $.inline_attribute),
+        ),
+      ),
 
     inline_attribute: ($) =>
       seq(
@@ -954,9 +842,11 @@ module.exports = grammar({
     // Block level collisions handled by the scanner scanning ahead.
     _symbol_fallback: ($) =>
       choice(
-        // Standalone emphasis and strong markers are required for backtracking
+        // Standalone span markers are required for backtracking.
         "_",
         "*",
+        "^",
+        "~",
         // Whitespace sensitive
         seq(
           choice("{_", seq("_", $._non_whitespace_check)),
@@ -966,12 +856,14 @@ module.exports = grammar({
           choice("{*", seq("*", $._non_whitespace_check)),
           choice($._strong_mark_begin, $._in_fallback),
         ),
-        // Not sensitive to whitespace
         seq(
-          choice("{^", "^"),
+          choice("{^", seq("^", $._non_whitespace_check)),
           choice($._superscript_mark_begin, $._in_fallback),
         ),
-        seq(choice("{~", "~"), choice($._subscript_mark_begin, $._in_fallback)),
+        seq(
+          choice("{~", seq("~", $._non_whitespace_check)),
+          choice($._subscript_mark_begin, $._in_fallback),
+        ),
         // Only bracketed versions
         seq("{=", choice($._highlighted_mark_begin, $._in_fallback)),
         seq("{+", choice($._insert_mark_begin, $._in_fallback)),
@@ -982,6 +874,9 @@ module.exports = grammar({
         seq("![", choice($._square_bracket_span_mark_begin, $._in_fallback)),
         seq("[", choice($._square_bracket_span_mark_begin, $._in_fallback)),
         seq("(", choice($._parens_span_mark_begin, $._in_fallback)),
+        // Balances the bracket count to allow nested links inside images
+        // for example.
+        $._square_bracket_span_text_close,
 
         // Autolink
         "<",
@@ -1049,6 +944,9 @@ module.exports = grammar({
     // they match the number of `#` (or there's no `#`).
     $._heading_continuation,
 
+    // Zero-width gate emitted before `_div_begin` when a `:::` fence opens
+    // (rather than closes) a div.
+    $._div_opener_check,
     // Matches div markers with varying number of `:`.
     $._div_begin,
     $._div_end,
@@ -1135,6 +1033,9 @@ module.exports = grammar({
     $._table_row_begin,
     // `_table_row_end_newline` consumes the ending newline.
     $._table_row_end_newline,
+    // Continuation marker (consumes the `>`) emitted only when the next
+    // block-quote line is another table row, so a non-row line ends the table.
+    $._table_continues,
     // `_table_cell_end` consumes the ending `|`.
     $._table_cell_end,
     // Table captions have significant whitespace but contain only inline.
@@ -1142,14 +1043,24 @@ module.exports = grammar({
     $._table_caption_end,
     // The `{` that begins a block attribute (scans the entire attribute to avoid
     // excessive branching).
+    // Zero-width gate at a `{` in a section; closes the section instead when
+    // the attributes are followed by a heading that closes it.
+    $._block_attribute_section_check,
     $._block_attribute_begin,
     // A comment can be closed by a `%` or implicitly when the attribute closes at `}`.
     $._comment_end_marker,
     $._comment_close,
+    // Terminates a block attribute after its closing `}`.
+    $._block_attribute_end,
+    // Zero-width bridge attaching a block attribute's trailing same-line content
+    // to an open block quote (`> {.c} more`).
+    $._block_attribute_quote_continuation,
+    // A non-blank `> ` continuation directly after a block attribute.
+    $._block_attribute_quote_prefix,
 
     // Inline elements.
 
-    // Zero-width check if a standalone comment is valid.
+    // Begins a standalone inline comment (consumes the `{`).
     $._inline_comment_begin,
 
     // Verbatim is handled externally to match a varying number of `,
@@ -1183,6 +1094,16 @@ module.exports = grammar({
     $._curly_bracket_span_end,
     $._square_bracket_span_mark_begin,
     $._square_bracket_span_end,
+
+    // Zero-width gate that stops image early if `![` isn't closed by a `]`.
+    // Also checks for "shorter element wins" precedence like `*![*](y)`
+    $._image_open_check,
+
+    // Zero-width gate that stops bracketed text, similarly to the image open check.
+    $._bracketed_text_open_check,
+
+    // Consumes the `]` in a bracketed text and decrements the bracket counter data.
+    $._square_bracket_span_text_close,
 
     // A signaling token that's used to signal that a fallback token should be scanned,
     // and should never be output.
